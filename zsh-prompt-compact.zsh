@@ -26,7 +26,7 @@ if [[ $SSH_TTY ]]; then
     function xterm_title_preexec () {
         print -Pn -- "\e]2%m: "${(q)1}"\a"
     }
-    PROMPT=$'${vcs_info_msg_0_}%b%(2j.%B%F{magenta}[%j]%f%b .)%B%m%b %(?.%F{blue}.%F{red})%{\e[3m%}%(5~|…/%3~|%~)%{\e[0m%}%f '
+    PROMPT=$'%B%m%b ${vcs_info_msg_0_}%b%(2j.%B%F{magenta}[%j]%f%b .)%(?.%F{blue}.%F{red})%{\e[3m%}%(5~|…/%3~|%~)%{\e[0m%}%f '
 else
     function xterm_title_precmd () {
         vcs_info
