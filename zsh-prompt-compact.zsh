@@ -1,4 +1,3 @@
-
 autoload -Uz promptinit
 promptinit
 setopt prompt_subst
@@ -17,24 +16,15 @@ autoload -Uz add-zsh-hook
 add-zsh-hook -Uz precmd xterm_title_precmd
 add-zsh-hook -Uz preexec xterm_title_preexec
 
-if [[ $SSH_TTY ]]; then
-    function xterm_title_precmd () {
-        vcs_info
-        print -Pn -- '\e]2;%m: %(8~|…/%6~|%~)\a'
-    }
+[ $SSH_TTY ] && _ssh="%B%m%b " m="%m:"
 
-    function xterm_title_preexec () {
-        print -Pn -- "\e]2%m: "${(q)1}"\a"
-    }
-    PROMPT=$'%B%m%b ${vcs_info_msg_0_}%b%(2j.%B%F{magenta}[%j]%f%b .)%(?.%F{blue}.%F{red})%{\e[3m%}%(5~|…/%3~|%~)%{\e[0m%}%f '
-else
-    function xterm_title_precmd () {
-        vcs_info
-        print -Pn -- '\e]2;%(8~|…/%6~|%~)\a'
-    }
+function xterm_title_precmd () {
+    vcs_info
+    print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a'
+}
 
-    function xterm_title_preexec () {
-        print -Pn -- "\e]2;%(5~|…/%3~|%~) – "${(q)1}"\a"
-    }
-    PROMPT=$'${vcs_info_msg_0_}%b%(?.%F{blue}.%F{red})%{\e[3m%}%(5~|…/%3~|%~)%{\e[0m%}%f '
-fi
+function xterm_title_preexec () {
+    print -Pn -- "\e]2;$m %(5~|…/%3~|%~) – "${(q)1}"\a"
+}
+
+PROMPT=$'${_ssh}${vcs_info_msg_0_}%b%(?.%F{blue}.%F{red})%{\e[3m%}%(5~|…/%3~|%~)%{\e[0m%}%f '
