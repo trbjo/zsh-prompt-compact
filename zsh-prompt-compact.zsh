@@ -27,4 +27,4 @@ function xterm_title_preexec () {
     print -Pn -- "\e]2;$m %(5~|…/%3~|%~) – "${(q)1}"\a"
 }
 
-PROMPT=$'${_ssh}${vcs_info_msg_0_}%b%(?.%F{blue}.%F{red})%{\e[3m%}%(5~|…/%3~|%~)%{\e[0m%}%f '
+PROMPT=$'${_ssh}${vcs_info_msg_0_}%b%(?.%F{blue}.%F{red})%{\e[3m%}%(5~|%-1~/…/%3~|%~)%{\e[0m%}%f '
