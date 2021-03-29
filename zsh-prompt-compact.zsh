@@ -117,7 +117,7 @@ PROMPT='%2F${_ssh}%f'                                  # green user@host
 PROMPT+=$'%{\e[3m%}%2F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%}'  # blue current working directory
 PROMPT+='${GITSTATUS_PROMPT:+ $GITSTATUS_PROMPT}'      # git status
 PROMPT+=$'\n'                                          # new line
-PROMPT+='%F{%(?.12.1)}%Bλ%b%f '                         # %/# (normal/root); green/red (ok/error)
+PROMPT+='%F{%(?.5.1)}%Bλ%b%f '                         # %/# (normal/root); green/red (ok/error)
 
 
 # PROMPT=$'${_ssh}${GITSTATUS_PROMPT:+$GITSTATUS_PROMPT }%b%(?.%F{blue}.%F{red})%{\e[3m%}%(5~|%-1~/…/%3~|%~)%{\e[0m%}%f '
