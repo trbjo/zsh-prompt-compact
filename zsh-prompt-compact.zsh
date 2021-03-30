@@ -113,7 +113,7 @@ setopt no_prompt_bang prompt_percent prompt_subst
 #   % █
 #
 # The current directory gets truncated from the left if the whole prompt doesn't fit on the line.
-PROMPT='%2F${_ssh}%f'                                  # green user@host
+PROMPT='%B${_ssh}%b'                                  # green user@host
 PROMPT+=$'%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%}'  # blue current working directory
 PROMPT+='${GITSTATUS_PROMPT:+ $GITSTATUS_PROMPT}'      # git status
 PROMPT+=$'\n'                                          # new line
