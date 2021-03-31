@@ -42,7 +42,7 @@ function gitstatus_prompt_update() {
   gitstatus_query 'MY'                  || return 1  # error
   [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
 
-  local      clean='%2F'   # green foreground
+  local      clean='%242F'   # green foreground
   local   modified='%3F'  # yellow foreground
   local  untracked='%12F'   # blue foreground
   local conflicted='%2F'  # red foreground
