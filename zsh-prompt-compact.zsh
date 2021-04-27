@@ -27,8 +27,6 @@ function xterm_title_preexec () {
 #      !42  42 unstaged changes
 #      ?42  42 untracked files
 function gitstatus_prompt_update() {
-    print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a'
-
     emulate -L zsh
     typeset -g  GITSTATUS_PROMPT=''
     typeset -gi GITSTATUS_PROMPT_LEN=0
@@ -86,6 +84,16 @@ fi
 
   # The length of GITSTATUS_PROMPT after removing %f and %F.
   GITSTATUS_PROMPT_LEN="${(m)#${${GITSTATUS_PROMPT//\%\%/x}//\%(f|<->F)}}"
+
+function preprompt() {
+    # sets window title
+    print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a'
+    # sets prompt. PROMPT has issues with multiline prompts, see
+    # https://superuser.com/questions/382503/how-can-i-put-a-newline-in-my-zsh-prompt-without-causing-terminal-redraw-issues
+    print -Pn -- '%B${_ssh}%b'
+    print -Pn -- '%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%}'  # blue current working directory
+    print -Pn -- '${GITSTATUS_PROMPT:+ $GITSTATUS_PROMPT}'      # git status
+    print -Pn -- '\n'                                          # new line
 }
 
 # Start gitstatusd instance with name "MY". The same name is passed to
@@ -95,8 +103,9 @@ gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 
 # On every prompt, fetch git status and set GITSTATUS_PROMPT.
 autoload -Uz add-zsh-hook
-add-zsh-hook precmd gitstatus_prompt_update
 add-zsh-hook preexec xterm_title_preexec
+add-zsh-hook precmd gitstatus_prompt_update
+add-zsh-hook precmd preprompt
 
 # Enable/disable the right prompt options.
 setopt no_prompt_bang prompt_percent prompt_subst
@@ -109,11 +118,4 @@ setopt no_prompt_bang prompt_percent prompt_subst
 #   % █
 #
 # The current directory gets truncated from the left if the whole prompt doesn't fit on the line.
-PROMPT='%B${_ssh}%b'                                  # green user@host
-PROMPT+=$'%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%}'  # blue current working directory
-PROMPT+='${GITSTATUS_PROMPT:+ $GITSTATUS_PROMPT}'      # git status
-PROMPT+=$'\n'                                          # new line
-PROMPT+='%F{%(?.5.1)}%Bλ%b%f '                         # %/# (normal/root); green/red (ok/error)
-
-
-# PROMPT=$'${_ssh}${GITSTATUS_PROMPT:+$GITSTATUS_PROMPT }%b%(?.%F{blue}.%F{red})%{\e[3m%}%(5~|%-1~/…/%3~|%~)%{\e[0m%}%f '
+PROMPT='%F{%(?.5.1)}%Bλ%b%f '                         # %/# (normal/root); green/red (ok/error)
