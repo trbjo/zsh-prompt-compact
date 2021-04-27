@@ -6,12 +6,6 @@ function xterm_title_preexec () {
     print -Pn -- "\e]2;$m %(5~|…/%3~|%~) – "${(q)1}"\a"
 }
 
-
-
-# Source gitstatus.plugin.zsh from $GITSTATUS_DIR or from the same directory
-# in which the current script resides if the variable isn't set.
-# source "${GITSTATUS_DIR:-${${(%):-%x}:h}}/gitstatus.plugin.zsh" || return
-
 # Sets GITSTATUS_PROMPT to reflect the state of the current git repository. Empty if not
 # in a git repository. In addition, sets GITSTATUS_PROMPT_LEN to the number of columns
 # $GITSTATUS_PROMPT will occupy when printed.
