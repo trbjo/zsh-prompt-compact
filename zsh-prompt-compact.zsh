@@ -86,13 +86,41 @@ function gitstatus_prompt_update() {
     GITSTATUS_PROMPT_LEN="${(m)#${${GITSTATUS_PROMPT//\%\%/x}//\%(f|<->F)}}"
 }
 
-function preprompt() {
-    # sets pwd in terminal title if the last command was not a widget,
-    # otherwise assume we can override the prompt on prev line
-    [ -z "${LASTWIDGET}" ] && print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' || print -Pn -- '\x1B[F\x1B[2K'
+typeset -g MYTIME=$(($(date +%s)))
+typeset -g MYGITDIR=$HOME
+fetch-wrapper() {
+    gitstatus_query 'MY'                  || return 1  # error
+    [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
+    if [[ $PWD == $MYGITDIR ]] && [[ $(($(date +%s)-${MYTIME})) -lt 30 ]]; then
+        # print -P -- '%{\e[3m%}hello from parent%'
+        # print -P -- '%{\e[3m%}hello from parent%'
+        return 0
+    fi
+    (fetch "$MYGITDIR" "$MYTIME" &)
+    MYGITDIR="$PWD"
+    MYTIME=$(($(date +%s)))
+}
 
-    # sets prompt. PROMPT has issues with multiline prompts, see
-    # https://superuser.com/questions/382503/how-can-i-put-a-newline-in-my-zsh-prompt-without-causing-terminal-redraw-issues
+fetch() {
+    git fetch > /dev/null 2>&1
+    gitstatus_query 'MY'                  || return 1  # error
+    [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
+    if [[ $PWD == "$1" ]] && [[ $(($(date +%s)-$2)) -lt 30 ]]; then
+        return 0
+    fi
+    gitstatus_prompt_update
+    print -Pn -- '\x1B[s\x1B[F%B${_ssh}%b'
+    print -Pn -- '%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%}'  # blue current working directory
+    print -Pn -- '\x1B[0K${GITSTATUS_PROMPT:+ $GITSTATUS_PROMPT}\x1B[u'      # git status
+}
+
+# sets prompt. PROMPT has issues with multiline prompts, see
+# https://superuser.com/questions/382503/how-can-i-put-a-newline-in-my-zsh-prompt-without-causing-terminal-redraw-issues
+function preprompt() {
+    print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' # sets pwd in terminal title
+
+    # if no widget we assume we can override the prompt on prev line
+    [ "${LASTWIDGET}" ] && print -Pn -- '\x1B[F\x1B[2K'
     print -Pn -- '%B${_ssh}%b'
     print -Pn -- '%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%}'  # blue current working directory
     print -P -- '${GITSTATUS_PROMPT:+ $GITSTATUS_PROMPT}'      # git status
@@ -106,6 +134,7 @@ gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 # On every prompt, fetch git status and set GITSTATUS_PROMPT.
 autoload -Uz add-zsh-hook
 add-zsh-hook preexec xterm_title_preexec
+add-zsh-hook precmd fetch-wrapper
 add-zsh-hook precmd gitstatus_prompt_update
 add-zsh-hook precmd preprompt
 
