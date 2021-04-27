@@ -88,15 +88,30 @@ function gitstatus_prompt_update() {
 
 typeset -g __last_check=$(($(date +%s)))
 typeset -g __current_git_dir=$HOME
-fetch-wrapper() {
-    gitstatus_query 'MY'                  || return 1  # error
-    [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
-    if [[ $PWD == $__current_git_dir ]] && [[ $(($(date +%s)-${__last_check})) -lt 30 ]]; then
-        return 0
+
+preprompt() {
+    printf "\x1b[?25l"            # hide the cursor while we update
+    print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' # sets pwd in terminal title
+    print -Pn -- '%B${_ssh}%b'
+    print -Pn -- '%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%}'  # blue current working directory
+
+    gitstatus_prompt_update
+    # if no widget we assume we can override the prompt on prev line
+    # [ "${LASTWIDGET}" ] && print -Pn -- '\x1B[F\x1B[2K'
+    if [[ ${GITSTATUS_PROMPT} ]]; then
+        print -nP '\033[6n'          # ask the terminal for the position
+        read -s -d\[ garbage          # discard the first part of the response
+        read -s -d R] foo            # store the position in bash variable 'foo'
+        print -P -- ' ${GITSTATUS_PROMPT}\x1b[?25h'      # git status and show cursor
+        if [[ $PWD == $__current_git_dir ]] && [[ $(($(date +%s)-${__last_check})) -lt 30 ]]; then
+            return 0
+        fi
+        (fetch "$__current_git_dir" "$__last_check" &)
+        __current_git_dir="$PWD"
+        __last_check=$(($(date +%s)))
+    else
+        print -nP "\x1b[?25h"            # show the cursor again
     fi
-    (fetch "$__current_git_dir" "$__last_check" &)
-    __current_git_dir="$PWD"
-    __last_check=$(($(date +%s)))
 }
 
 fetch() {
@@ -107,22 +122,15 @@ fetch() {
         return 0
     fi
     gitstatus_prompt_update
-    print -Pn -- '\x1B[s\x1B[F%B${_ssh}%b'
-    print -Pn -- '%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%}'  # blue current working directory
-    print -Pn -- '\x1B[0K${GITSTATUS_PROMPT:+ $GITSTATUS_PROMPT}\x1B[u'      # git status
+    print -Pn -- '\x1B[s'
+    print -Pn -- '\x1B[${foo}H'
+    print -Pn -- '\x1B[0K' # clear to EOL
+    print -Pn -- ' ${GITSTATUS_PROMPT}'      # git status
+    print -Pn -- '\x1B[u'
 }
 
 # sets prompt. PROMPT has issues with multiline prompts, see
 # https://superuser.com/questions/382503/how-can-i-put-a-newline-in-my-zsh-prompt-without-causing-terminal-redraw-issues
-function preprompt() {
-    print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' # sets pwd in terminal title
-
-    # if no widget we assume we can override the prompt on prev line
-    [ "${LASTWIDGET}" ] && print -Pn -- '\x1B[F\x1B[2K'
-    print -Pn -- '%B${_ssh}%b'
-    print -Pn -- '%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%}'  # blue current working directory
-    print -P -- '${GITSTATUS_PROMPT:+ $GITSTATUS_PROMPT}'      # git status
-}
 
 # Start gitstatusd instance with name "MY". The same name is passed to
 # gitstatus_query in gitstatus_prompt_update. The flags with -1 as values
@@ -132,7 +140,6 @@ gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 # On every prompt, fetch git status and set GITSTATUS_PROMPT.
 autoload -Uz add-zsh-hook
 add-zsh-hook preexec xterm_title_preexec
-add-zsh-hook precmd fetch-wrapper
 add-zsh-hook precmd gitstatus_prompt_update
 add-zsh-hook precmd preprompt
 
