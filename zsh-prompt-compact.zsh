@@ -87,8 +87,10 @@ function gitstatus_prompt_update() {
 }
 
 function preprompt() {
-    # sets window title
-    print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a'
+    # sets pwd in terminal title if the last command was not a widget,
+    # otherwise assume we can override the prompt on prev line
+    [ -z "${LASTWIDGET}" ] && print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' || print -Pn -- '\x1B[F\x1B[2K'
+
     # sets prompt. PROMPT has issues with multiline prompts, see
     # https://superuser.com/questions/382503/how-can-i-put-a-newline-in-my-zsh-prompt-without-causing-terminal-redraw-issues
     print -Pn -- '%B${_ssh}%b'
