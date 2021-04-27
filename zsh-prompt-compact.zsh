@@ -93,8 +93,7 @@ function preprompt() {
     # https://superuser.com/questions/382503/how-can-i-put-a-newline-in-my-zsh-prompt-without-causing-terminal-redraw-issues
     print -Pn -- '%B${_ssh}%b'
     print -Pn -- '%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%}'  # blue current working directory
-    print -Pn -- '${GITSTATUS_PROMPT:+ $GITSTATUS_PROMPT}'      # git status
-    print -Pn -- '\n'                                          # new line
+    print -P -- '${GITSTATUS_PROMPT:+ $GITSTATUS_PROMPT}'      # git status
 }
 
 # Start gitstatusd instance with name "MY". The same name is passed to
