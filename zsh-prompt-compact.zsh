@@ -92,8 +92,6 @@ fetch-wrapper() {
     gitstatus_query 'MY'                  || return 1  # error
     [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
     if [[ $PWD == $MYGITDIR ]] && [[ $(($(date +%s)-${MYTIME})) -lt 30 ]]; then
-        # print -P -- '%{\e[3m%}hello from parent%'
-        # print -P -- '%{\e[3m%}hello from parent%'
         return 0
     fi
     (fetch "$MYGITDIR" "$MYTIME" &)
