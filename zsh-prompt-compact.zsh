@@ -86,17 +86,17 @@ function gitstatus_prompt_update() {
     GITSTATUS_PROMPT_LEN="${(m)#${${GITSTATUS_PROMPT//\%\%/x}//\%(f|<->F)}}"
 }
 
-typeset -g MYTIME=$(($(date +%s)))
-typeset -g MYGITDIR=$HOME
+typeset -g __last_check=$(($(date +%s)))
+typeset -g __current_git_dir=$HOME
 fetch-wrapper() {
     gitstatus_query 'MY'                  || return 1  # error
     [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
-    if [[ $PWD == $MYGITDIR ]] && [[ $(($(date +%s)-${MYTIME})) -lt 30 ]]; then
+    if [[ $PWD == $__current_git_dir ]] && [[ $(($(date +%s)-${__last_check})) -lt 30 ]]; then
         return 0
     fi
-    (fetch "$MYGITDIR" "$MYTIME" &)
-    MYGITDIR="$PWD"
-    MYTIME=$(($(date +%s)))
+    (fetch "$__current_git_dir" "$__last_check" &)
+    __current_git_dir="$PWD"
+    __last_check=$(($(date +%s)))
 }
 
 fetch() {
