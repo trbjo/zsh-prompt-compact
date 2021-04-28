@@ -1,9 +1,9 @@
 # Simple Zsh prompt with Git status.
 
-[ $SSH_TTY ] && _ssh="%B%m%b " m="%m:"
+[ $SSH_TTY ] && _ssh="%B[%b%m%B]%b " m="%m: "
 
 function xterm_title_preexec () {
-    print -Pn -- "\e]2;$m %(5~|…/%3~|%~) – "${(q)1}"\a"
+    print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)1}"\a"
 }
 
 # Sets GITSTATUS_PROMPT to reflect the state of the current git repository. Empty if not
@@ -75,41 +75,38 @@ typeset -g __last_check=$(($(date +%s)))
 typeset -g __current_git_dir=$HOME
 
 preprompt() {
-    print -Pn -- "\x1b[?25l\r\x1B[2K"            # hide the cursor while we update
-    print -Pn -- '%B${_ssh}%b\e]2;$m %(8~|…/%6~|%~)\a' # sets ssh and pwd in terminal title
+    print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' # sets ssh and pwd in terminal title
+    printf -- "\x1b[?25l"            # hide the cursor while we update
 
     gitstatus_prompt_update
-    print -Pn -- '%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%}'  # blue current working directory
+    print -Pn -- '%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%} '  # blue current working directory
 
     if [[ ${GITSTATUS_PROMPT} ]]; then
-        print -nP -- '\033[6n' > /dev/tty          # ask the terminal for the position
-        read -s -d\[ nonce > /dev/null 2>&1         # discard the first part of the response
-        read -s -d R] position < /dev/tty 2> /dev/null          # store the position in bash variable 'foo'
-
-        print -P -- ' ${GITSTATUS_PROMPT}\x1b[?25h'      # git status and show cursor
+        printf '\033[6n'           # ask the terminal for the position
+        read -s -d\[ nonce         # discard the first part of the response
+        read -s -d R] position           # store the position in bash variable 'foo'
+        print -Pn -- '${GITSTATUS_PROMPT}'
         (fetch "$__current_git_dir" &)
         __current_git_dir="${VCS_STATUS_WORKDIR}"
         __last_check=$(($(date +%s)))
-    else
-        print -P "\x1b[?25h"            # show the cursor again and add final newline
     fi
+    print "\x1b[?25h"   # show the cursor again and add final newline
 }
 
 fetch() {
     gitstatus_query 'MY'                  || return 1  # error
     [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
-
-    while pgrep -f "/usr/bin/git -C ${VCS_STATUS_WORKDIR} fetch" > /dev/null 2>&1; do
-        sleep 0.2
-    done
-    gitstatus_prompt_update
-    # save cursor, go to position, move line down, move line up, write gitstatus, restore cursor
-    print -Pn -- '\x1B[s\x1B[${position}H\x1B[B\x1B[A\x1B[0K ${GITSTATUS_PROMPT}\x1B[u'
-
     if [[ "${VCS_STATUS_WORKDIR}" != "$1" ]] || [[ $(($(date +%s)-${__last_check})) -gt 60 ]]; then
         /usr/bin/git -C "${VCS_STATUS_WORKDIR}" fetch > /dev/null 2>&1 &&\
         gitstatus_prompt_update &&\
-        print -Pn -- '\x1B[s\x1B[${position}H\x1B[B\x1B[A\x1B[0K ${GITSTATUS_PROMPT}\x1B[u'
+        print -Pn -- '\x1B[s\x1B[${position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
+    elif pgrep -f "/usr/bin/git -C ${VCS_STATUS_WORKDIR} fetch" > /dev/null 2>&1; then
+        while pgrep -f "/usr/bin/git -C ${VCS_STATUS_WORKDIR} fetch" > /dev/null 2>&1; do
+            sleep 0.5
+        done
+        gitstatus_prompt_update
+        # save cursor, go to position, move line down, move line up, write gitstatus, restore cursor
+        print -Pn -- '\x1B[s\x1B[${position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
     fi
 }
 
@@ -130,12 +127,5 @@ add-zsh-hook precmd preprompt
 # Enable/disable the right prompt options.
 setopt no_prompt_bang prompt_percent prompt_subst
 
-# Customize prompt. Put $GITSTATUS_PROMPT in it to reflect git status.
-#
-# Example:
-#
-#   user@host ~/projects/skynet master ⇡42
-#   % █
-#
 # The current directory gets truncated from the left if the whole prompt doesn't fit on the line.
-PROMPT='%F{%(?.5.1)}%Bλ%b%f '                         # %/# (normal/root); green/red (ok/error)
+PROMPT='${_ssh}%F{%(?.5.1)}%Bλ%b%f '     # %/# (normal/root); green/red (ok/error)
