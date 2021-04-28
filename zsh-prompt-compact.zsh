@@ -103,14 +103,14 @@ fetch() {
         sleep 0.2
     done
     gitstatus_prompt_update
-    print -Pn -- '\x1B[s\x1B[${position}H\x1B[0K ${GITSTATUS_PROMPT}\x1B[u'
+    # save cursor, go to position, move line down, move line up, write gitstatus, restore cursor
+    print -Pn -- '\x1B[s\x1B[${position}H\x1B[B\x1B[A\x1B[0K ${GITSTATUS_PROMPT}\x1B[u'
 
     if [[ "${VCS_STATUS_WORKDIR}" != "$1" ]] || [[ $(($(date +%s)-${__last_check})) -gt 60 ]]; then
         /usr/bin/git -C "${VCS_STATUS_WORKDIR}" fetch > /dev/null 2>&1 &&\
         gitstatus_prompt_update &&\
-        print -Pn -- '\x1B[s\x1B[${position}H\x1B[0K ${GITSTATUS_PROMPT}\x1B[u'
+        print -Pn -- '\x1B[s\x1B[${position}H\x1B[B\x1B[A\x1B[0K ${GITSTATUS_PROMPT}\x1B[u'
     fi
-    # save cursor, move one line up, go to position, write gitstatus, restore cursore
 }
 
 # sets prompt. PROMPT has issues with multiline prompts, see
