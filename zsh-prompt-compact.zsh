@@ -84,7 +84,7 @@ preprompt() {
     if [[ ${GITSTATUS_PROMPT} ]]; then
         printf '\033[6n'           # ask the terminal for the position
         read -s -d\[ nonce         # discard the first part of the response
-        read -s -d R] position           # store the position in bash variable 'foo'
+        read -s -d R] position < /dev/tty          # store the position in bash variable 'foo'
         print -Pn -- '${GITSTATUS_PROMPT}'
         (fetch "$__current_git_dir" &)
         __current_git_dir="${VCS_STATUS_WORKDIR}"
