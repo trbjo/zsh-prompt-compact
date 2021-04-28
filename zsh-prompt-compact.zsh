@@ -10,22 +10,7 @@ function xterm_title_preexec () {
 # in a git repository. In addition, sets GITSTATUS_PROMPT_LEN to the number of columns
 # $GITSTATUS_PROMPT will occupy when printed.
 #
-# Example:
-#
-#   GITSTATUS_PROMPT='master ⇣42⇡42 ⇠42⇢42 *42 merge ~42 +42 !42 ?42'
-#   GITSTATUS_PROMPT_LEN=39
-#
-#   master  current branch
-#      ⇣42  local branch is 42 commits behind the remote
-#      ⇡42  local branch is 42 commits ahead of the remote
-#      ⇠42  local branch is 42 commits behind the push remote
-#      ⇢42  local branch is 42 commits ahead of the push remote
-#      *42  42 stashes
-#    merge  merge in progress
-#      ~42  42 merge conflicts
-#      +42  42 staged changes
-#      !42  42 unstaged changes
-#      ?42  42 untracked files
+
 function gitstatus_prompt_update() {
     emulate -L zsh
     typeset -g  GITSTATUS_PROMPT=''
@@ -103,35 +88,29 @@ preprompt() {
 
         print -P -- ' ${GITSTATUS_PROMPT}\x1b[?25h'      # git status and show cursor
         (fetch "$__current_git_dir" &)
-        __current_git_dir="$PWD"
+        __current_git_dir="${VCS_STATUS_WORKDIR}"
         __last_check=$(($(date +%s)))
     else
         print -P "\x1b[?25h"            # show the cursor again and add final newline
     fi
 }
 
-update_offline() {
-    gitstatus_query 'MY'                  || return 1  # error
-    [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
-    gitstatus_prompt_update
-    # save cursor, move one line up, go to position, write gitstatus, restore cursore
-    print -Pn -- '\x1B[s\x1B[${position}H\x1B[0K ${GITSTATUS_PROMPT}\x1B[u'
-}
-
 fetch() {
     gitstatus_query 'MY'                  || return 1  # error
     [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
 
-    if [[ "$PWD" == "$1" ]] && [[ $(($(date +%s)-${__last_check})) -lt 30 ]]; then
-        if pgrep -f "/usr/bin/git -C ${PWD} fetch" > /dev/null 2>&1; then
-            while pgrep -f "/usr/bin/git -C ${PWD} fetch" > /dev/null 2>&1; do
-            sleep 0.2
-            done
-            update_offline
-        fi
-    else
-        /usr/bin/git -C "${PWD}" fetch > /dev/null 2>&1 && update_offline
+    while pgrep -f "/usr/bin/git -C ${VCS_STATUS_WORKDIR} fetch" > /dev/null 2>&1; do
+        sleep 0.2
+    done
+    gitstatus_prompt_update
+    print -Pn -- '\x1B[s\x1B[${position}H\x1B[0K ${GITSTATUS_PROMPT}\x1B[u'
+
+    if [[ "${VCS_STATUS_WORKDIR}" != "$1" ]] || [[ $(($(date +%s)-${__last_check})) -gt 60 ]]; then
+        /usr/bin/git -C "${VCS_STATUS_WORKDIR}" fetch > /dev/null 2>&1 &&\
+        gitstatus_prompt_update &&\
+        print -Pn -- '\x1B[s\x1B[${position}H\x1B[0K ${GITSTATUS_PROMPT}\x1B[u'
     fi
+    # save cursor, move one line up, go to position, write gitstatus, restore cursore
 }
 
 # sets prompt. PROMPT has issues with multiline prompts, see
