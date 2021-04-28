@@ -90,9 +90,10 @@ typeset -g __last_check=$(($(date +%s)))
 typeset -g __current_git_dir=$HOME
 
 preprompt() {
-    printf "\x1b[?25l\r\x1B[2K"            # hide the cursor while we update
-    gitstatus_prompt_update
+    print -Pn -- "\x1b[?25l\r\x1B[2K"            # hide the cursor while we update
     print -Pn -- '%B${_ssh}%b\e]2;$m %(8~|…/%6~|%~)\a' # sets ssh and pwd in terminal title
+
+    gitstatus_prompt_update
     print -Pn -- '%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%}'  # blue current working directory
 
     if [[ ${GITSTATUS_PROMPT} ]]; then
