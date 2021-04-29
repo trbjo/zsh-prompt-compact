@@ -71,42 +71,43 @@ function gitstatus_prompt_update() {
     GITSTATUS_PROMPT_LEN="${(m)#${${GITSTATUS_PROMPT//\%\%/x}//\%(f|<->F)}}"
 }
 
-typeset -g __last_check=$(($(date +%s)))
-typeset -g __current_git_dir=$HOME
-
+typeset -gA __last_checks
 preprompt() {
-    print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' # sets ssh and pwd in terminal title
-    printf -- "\x1b[?25l"            # hide the cursor while we update
+    setopt LOCAL_OPTIONS NO_NOTIFY NO_MONITOR
+    export GIT_TERMINAL_PROMPT=0
+    typeset -gx GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o BatchMode=yes"
 
-    gitstatus_prompt_update
-    print -Pn -- '%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%} '  # blue current working directory
+    if [[ $1 != true ]]; then
+        print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' # sets ssh and pwd in terminal title
+        printf -- "\x1b[?25l"            # hide the cursor while we update
+
+        gitstatus_prompt_update
+        print -Pn -- '%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%} '  # blue current working directory
+    fi
 
     if [[ ${GITSTATUS_PROMPT} ]]; then
-        printf '\033[6n'           # ask the terminal for the position
-        read -s -d\[ nonce         # discard the first part of the response
-        read -s -d R] position < /dev/tty          # store the position in bash variable 'foo'
-        print -Pn -- '${GITSTATUS_PROMPT}'
-        (fetch "$__current_git_dir" &)
-        __current_git_dir="${VCS_STATUS_WORKDIR}"
-        __last_check=$(($(date +%s)))
+        if [[ $1 != true ]]; then
+            printf '\033[6n'                   # ask term for position
+            read -s -d\[ __nonce                 # discard first part
+            read -s -d R] __position < /dev/tty  # store the position
+            print -Pn -- '${GITSTATUS_PROMPT}'
+        fi
+
+        if [[ $(($EPOCHSECONDS - ${__last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt 60 ]]; then
+            __last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
+            /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --quiet --no-tags --recurse-submodules=no & disown
+        fi
+        (write &)
     fi
-    print "\x1b[?25h"   # show the cursor again and add final newline
+    [[ $1 != true ]] && print "\x1b[?25h"   # show the cursor again and add final newline
 }
 
-fetch() {
-    gitstatus_query 'MY'                  || return 1  # error
-    [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
-    if [[ "${VCS_STATUS_WORKDIR}" != "$1" ]] || [[ $(($(date +%s)-${__last_check})) -gt 60 ]]; then
-        /usr/bin/git -C "${VCS_STATUS_WORKDIR}" fetch > /dev/null 2>&1 &&\
-        gitstatus_prompt_update &&\
-        print -Pn -- '\x1B[s\x1B[${position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
-    elif pgrep -f "/usr/bin/git -C ${VCS_STATUS_WORKDIR} fetch" > /dev/null 2>&1; then
-        while pgrep -f "/usr/bin/git -C ${VCS_STATUS_WORKDIR} fetch" > /dev/null 2>&1; do
-            sleep 0.5
-        done
-        gitstatus_prompt_update
-        # save cursor, go to position, move line down, move line up, write gitstatus, restore cursor
-        print -Pn -- '\x1B[s\x1B[${position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
+write() {
+    pid=$(pgrep -f "/usr/bin/git -c gc.auto=0 -C ${VCS_STATUS_WORKDIR} fetch --quiet --no-tags --recurse-submodules=no")
+    if [[ ! -z $pid ]]; then
+        tail --pid=$pid -f /dev/null && gitstatus_prompt_update &&\
+        print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
+        # save cursor, go to __position, move line down, move line up, write gitstatus, restore cursor
     fi
 }
 
@@ -128,4 +129,4 @@ add-zsh-hook precmd preprompt
 setopt no_prompt_bang prompt_percent prompt_subst
 
 # The current directory gets truncated from the left if the whole prompt doesn't fit on the line.
-PROMPT='${_ssh}%F{%(?.5.1)}%Bλ%b%f '     # %/# (normal/root); green/red (ok/error)
+PROMPT='${_ssh}%F{%(?.none.1)}%%%f '     # %/# (normal/root); green/red (ok/error)
