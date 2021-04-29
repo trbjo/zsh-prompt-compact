@@ -105,10 +105,11 @@ preprompt() {
 write() {
     pid=$(pgrep -f "/usr/bin/git -c gc.auto=0 -C ${VCS_STATUS_WORKDIR} fetch --quiet --no-tags --recurse-submodules=no")
     if [[ ! -z $pid ]]; then
-        tail --pid=$pid -f /dev/null && gitstatus_prompt_update &&\
+        tail --pid=$pid -f /dev/null
+    fi
+        gitstatus_prompt_update
         print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
         # save cursor, go to __position, move line down, move line up, write gitstatus, restore cursor
-    fi
 }
 
 # sets prompt. PROMPT has issues with multiline prompts, see
