@@ -74,8 +74,6 @@ function gitstatus_prompt_update() {
 typeset -gA __last_checks
 preprompt() {
     setopt LOCAL_OPTIONS NO_NOTIFY NO_MONITOR
-    export GIT_TERMINAL_PROMPT=0
-    typeset -gx GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o BatchMode=yes"
 
     if [[ $1 != true ]]; then
         print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' # sets ssh and pwd in terminal title
@@ -95,7 +93,7 @@ preprompt() {
 
         if [[ $(($EPOCHSECONDS - ${__last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt 60 ]]; then
             __last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
-            /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --quiet --no-tags --recurse-submodules=no & disown
+            env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --no-tags --recurse-submodules=no > /dev/null 2>&1 & disown
         fi
         (write &)
     fi
