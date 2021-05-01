@@ -101,7 +101,7 @@ preprompt() {
 }
 
 write() {
-    pid=$(pgrep -f "/usr/bin/git -c gc.auto=0 -C ${VCS_STATUS_WORKDIR} fetch --quiet --no-tags --recurse-submodules=no")
+    pid=$(pgrep -f "/usr/bin/git -c gc.auto=0 -C ${VCS_STATUS_WORKDIR} fetch --no-tags --recurse-submodules=no")
     if [[ ! -z $pid ]]; then
         tail --pid=$pid -f /dev/null
     fi
