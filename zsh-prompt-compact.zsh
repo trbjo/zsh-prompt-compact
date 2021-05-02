@@ -1,6 +1,7 @@
 [ $SSH_TTY ] && _ssh="%B[%b%m%B]%b " m="%m: "
 
 function xterm_title_preexec () {
+    typeset -g cmd_exec_timestamp=$EPOCHSECONDS
     print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)1}"\a"
 }
 
@@ -69,11 +70,41 @@ function gitstatus_prompt_update() {
     GITSTATUS_PROMPT_LEN="${(m)#${${GITSTATUS_PROMPT//\%\%/x}//\%(f|<->F)}}"
 }
 
+# taken from Sindre Sorhus
+# https://github.com/sindresorhus/pretty-time-zsh
+human_time_to_var() {
+    local human total_seconds=$1 var=$2
+    local days=$(( total_seconds / 60 / 60 / 24 ))
+    local hours=$(( total_seconds / 60 / 60 % 24 ))
+    local minutes=$(( total_seconds / 60 % 60 ))
+    local seconds=$(( total_seconds % 60 ))
+    (( days > 0 )) && human+="${days}d "
+    (( hours > 0 )) && human+="${hours}h "
+    (( minutes > 0 )) && human+="${minutes}m "
+    human+="${seconds}s"
+
+    # Store human readable time in a variable as specified by the caller
+    typeset -g "${var}"="${human} "
+}
+
+# Stores (into exec_time) the execution
+# time of the last command if set threshold was exceeded.
+check_cmd_exec_time() {
+    integer elapsed
+    (( elapsed = EPOCHSECONDS - ${cmd_exec_timestamp:-$EPOCHSECONDS} ))
+    typeset -g exec_time=
+    (( elapsed > ${PURE_CMD_MAX_EXEC_TIME:-5} )) && {
+        human_time_to_var $elapsed "exec_time"
+    }
+}
 typeset -gA __last_checks
 preprompt() {
     setopt LOCAL_OPTIONS NO_NOTIFY NO_MONITOR
 
     if [[ $1 != true ]]; then
+        check_cmd_exec_time
+        unset cmd_exec_timestamp
+
         print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' # sets ssh and pwd in terminal title
         printf -- "\x1b[?25l"            # hide the cursor while we update
 
