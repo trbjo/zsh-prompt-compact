@@ -102,14 +102,14 @@ write() {
     pid=$(pgrep --oldest --full "/usr/bin/git -c gc.auto=0 -C ${VCS_STATUS_WORKDIR} fetch --no-tags --recurse-submodules=no")
     if [[ ! -z $pid ]]; then
         # There is an active process, so we update the status line,
-        # wait for `git fetct` to finish and update it again
+        # wait for `git fetch` to finish and update it again
         gitstatus_prompt_update
         print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
         tail --pid=$pid -f /dev/null
     fi
         gitstatus_prompt_update
-        print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
         # save cursor, go to __position, move line down, move line up, write gitstatus, restore cursor
+        print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
 }
 
 # sets prompt. PROMPT has issues with multiline prompts, see
