@@ -3,9 +3,10 @@
 function xterm_title_preexec () {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
     print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)1}"\a"
-    if [ ! -z ${VCS_STATUS_WORKDIR} ]; then
+    if [[ $git_fetch_pid ]] && [ ! -z ${VCS_STATUS_WORKDIR} ]; then
         if [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
             kill $git_fetch_pid > /dev/null 2>&1
+            unset git_fetch_pid
         fi
         [[ ! -z $pending_git_status_pid ]] && kill $pending_git_status_pid > /dev/null 2>&1
         unset pending_git_status_pid
@@ -141,7 +142,7 @@ preprompt() {
         if [[ $git_fetch_pid ]] && [ -e /proc/${git_fetch_pid} ]; then
             { pending_git_status_pid=$(write_git_status >&3 3>&- & printf "$!"); } 3>&1
         else
-            unset git_fetch_pid
+            unset git_fetch_pid pending_git_status_pid
         fi
     fi
     [[ $1 != true ]] && print "\x1b[?25h"   # show the cursor again and add final newline
