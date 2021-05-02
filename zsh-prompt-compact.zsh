@@ -3,8 +3,8 @@
 function xterm_title_preexec () {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
     print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)1}"\a"
-    if [[ $git_fetch_pid ]] && [ ! -z ${VCS_STATUS_WORKDIR} ]; then
-        if [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
+    if [ ! -z ${VCS_STATUS_WORKDIR} ]; then
+        if [[ $git_fetch_pid ]] && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
             kill $git_fetch_pid > /dev/null 2>&1
             unset git_fetch_pid
         fi
