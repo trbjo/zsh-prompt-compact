@@ -8,8 +8,8 @@ function xterm_title_preexec () {
         if [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
             local git_pid=($(pgrep --full "/usr/bin/git -c gc.auto=0 -C ${VCS_STATUS_WORKDIR} fetch --no-tags --recurse-submodules=no"))
         fi
-        [[ -n $pending_git_status ]] && kill $pending_git_status $git_pid > /dev/null 2>&1
-        unset pending_git_status
+        [[ -n $pending_git_status_pid ]] && kill $pending_git_status_pid $git_pid > /dev/null 2>&1
+        unset pending_git_status_pid
     fi
 }
 
@@ -137,12 +137,12 @@ preprompt() {
             __last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
             pgrep --full "/usr/bin/git -c gc.auto=0 -C ${VCS_STATUS_WORKDIR} fetch --no-tags --recurse-submodules=no" > /dev/null 2>&1 || { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=59 -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --no-tags --recurse-submodules=no > /dev/null 2>&1 & disown }
         fi
-        { pending_git_status=$(write >&3 3>&- & printf "$!"); } 3>&1
+        { pending_git_status_pid=$(write_git_status >&3 3>&- & printf "$!"); } 3>&1
     fi
     [[ $1 != true ]] && print "\x1b[?25h"   # show the cursor again and add final newline
 }
 
-write() {
+write_git_status() {
     local git_pid=($(pgrep --full "/usr/bin/git -c gc.auto=0 -C ${VCS_STATUS_WORKDIR} fetch --no-tags --recurse-submodules=no"))
     if [[ -n ${git_pid} ]]; then
         # There is an active process, so we update the status line,
