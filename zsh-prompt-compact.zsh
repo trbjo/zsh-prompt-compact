@@ -1,5 +1,3 @@
-# Simple Zsh prompt with Git status.
-
 [ $SSH_TTY ] && _ssh="%B[%b%m%B]%b " m="%m: "
 
 function xterm_title_preexec () {
