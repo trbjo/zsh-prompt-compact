@@ -138,7 +138,11 @@ preprompt() {
             { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=59 -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --no-tags --recurse-submodules=no > /dev/null 2>&1 & disown }
             git_fetch_pid="$!"
         fi
-        [ -e /proc/${git_fetch_pid} ] && { pending_git_status_pid=$(write_git_status >&3 3>&- & printf "$!"); } 3>&1
+        if [[ $git_fetch_pid ]] && [ -e /proc/${git_fetch_pid} ]; then
+            { pending_git_status_pid=$(write_git_status >&3 3>&- & printf "$!"); } 3>&1
+        else
+            unset git_fetch_pid
+        fi
     fi
     [[ $1 != true ]] && print "\x1b[?25h"   # show the cursor again and add final newline
 }
