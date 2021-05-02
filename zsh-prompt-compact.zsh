@@ -5,7 +5,7 @@ function xterm_title_preexec () {
     print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)1}"\a"
     if [ ! -z ${VCS_STATUS_WORKDIR} ]; then
         if [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
-            kill $git_fetch_pid
+            kill $git_fetch_pid > /dev/null 2>&1
         fi
         [[ ! -z $pending_git_status_pid ]] && kill $pending_git_status_pid > /dev/null 2>&1
         unset pending_git_status_pid
