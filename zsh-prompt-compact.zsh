@@ -3,6 +3,14 @@
 function xterm_title_preexec () {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
     print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)1}"\a"
+
+    if [ -n ${VCS_STATUS_WORKDIR} ]; then
+        if [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
+            local git_pid=($(pgrep --full "/usr/bin/git -c gc.auto=0 -C ${VCS_STATUS_WORKDIR} fetch --no-tags --recurse-submodules=no"))
+        fi
+        [[ -n $pending_git_status ]] && kill $pending_git_status $git_pid > /dev/null 2>&1
+        unset pending_git_status
+    fi
 }
 
 # Sets GITSTATUS_PROMPT to reflect the state of the current git repository. Empty if not
@@ -97,6 +105,8 @@ check_cmd_exec_time() {
         human_time_to_var $elapsed "exec_time"
     }
 }
+
+
 typeset -gA __last_checks
 preprompt() {
     setopt LOCAL_OPTIONS NO_NOTIFY NO_MONITOR
@@ -109,7 +119,7 @@ preprompt() {
         printf -- "\x1b[?25l"            # hide the cursor while we update
 
         gitstatus_prompt_update
-        print -Pn -- '%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%} '  # blue current working directory
+        print -Pn -- '%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%} %5F${exec_time}%f'
     fi
 
     if [[ ${GITSTATUS_PROMPT} ]]; then
@@ -118,29 +128,31 @@ preprompt() {
             read -s -d\[ __nonce                 # discard first part
             read -s -d R] __position < /dev/tty  # store the position
             print -Pn -- '${GITSTATUS_PROMPT}'
+        else
+            gitstatus_prompt_update
+            print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
         fi
 
         if [[ $(($EPOCHSECONDS - ${__last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt 60 ]]; then
             __last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
-            env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --no-tags --recurse-submodules=no > /dev/null 2>&1 & disown
+            pgrep --full "/usr/bin/git -c gc.auto=0 -C ${VCS_STATUS_WORKDIR} fetch --no-tags --recurse-submodules=no" > /dev/null 2>&1 || { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=59 -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --no-tags --recurse-submodules=no > /dev/null 2>&1 & disown }
         fi
-        (write &)
+        { pending_git_status=$(write >&3 3>&- & printf "$!"); } 3>&1
     fi
     [[ $1 != true ]] && print "\x1b[?25h"   # show the cursor again and add final newline
 }
 
 write() {
-    pid=$(pgrep --oldest --full "/usr/bin/git -c gc.auto=0 -C ${VCS_STATUS_WORKDIR} fetch --no-tags --recurse-submodules=no")
-    if [[ ! -z $pid ]]; then
+    local git_pid=($(pgrep --full "/usr/bin/git -c gc.auto=0 -C ${VCS_STATUS_WORKDIR} fetch --no-tags --recurse-submodules=no"))
+    if [[ -n ${git_pid} ]]; then
         # There is an active process, so we update the status line,
         # wait for `git fetch` to finish and update it again
-        gitstatus_prompt_update
-        print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
-        tail --pid=$pid -f /dev/null
+        tail --pid=${git_pid[1]} -f /dev/null && {
+            gitstatus_prompt_update
+            # save cursor, go to __position, move line down, move line up, write gitstatus, restore cursor
+            print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
+        }
     fi
-        gitstatus_prompt_update
-        # save cursor, go to __position, move line down, move line up, write gitstatus, restore cursor
-        print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
 }
 
 # sets prompt. PROMPT has issues with multiline prompts, see
@@ -154,7 +166,6 @@ gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 # On every prompt, fetch git status and set GITSTATUS_PROMPT.
 autoload -Uz add-zsh-hook
 add-zsh-hook preexec xterm_title_preexec
-# add-zsh-hook precmd gitstatus_prompt_update
 add-zsh-hook precmd preprompt
 
 # Enable/disable the right prompt options.
