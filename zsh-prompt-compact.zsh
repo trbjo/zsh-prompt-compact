@@ -3,12 +3,11 @@
 function xterm_title_preexec () {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
     print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)1}"\a"
-
-    if [ -n ${VCS_STATUS_WORKDIR} ]; then
+    if [ ! -z ${VCS_STATUS_WORKDIR} ]; then
         if [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
-            local git_pid=($(pgrep --full "/usr/bin/git -c gc.auto=0 -C ${VCS_STATUS_WORKDIR} fetch --no-tags --recurse-submodules=no"))
+            kill $git_fetch_pid
         fi
-        [[ -n $pending_git_status_pid ]] && kill $pending_git_status_pid $git_pid > /dev/null 2>&1
+        [[ ! -z $pending_git_status_pid ]] && kill $pending_git_status_pid
         unset pending_git_status_pid
     fi
 }
@@ -108,6 +107,7 @@ check_cmd_exec_time() {
 
 
 typeset -gA __last_checks
+typeset -g git_fetch_pid
 preprompt() {
     setopt LOCAL_OPTIONS NO_NOTIFY NO_MONITOR
 
@@ -135,24 +135,21 @@ preprompt() {
 
         if [[ $(($EPOCHSECONDS - ${__last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt 60 ]]; then
             __last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
-            pgrep --full "/usr/bin/git -c gc.auto=0 -C ${VCS_STATUS_WORKDIR} fetch --no-tags --recurse-submodules=no" > /dev/null 2>&1 || { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=59 -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --no-tags --recurse-submodules=no > /dev/null 2>&1 & disown }
+            { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=59 -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --no-tags --recurse-submodules=no > /dev/null 2>&1 & disown }
+            git_fetch_pid="$!"
         fi
-        { pending_git_status_pid=$(write_git_status >&3 3>&- & printf "$!"); } 3>&1
+        [ -e /proc/${git_fetch_pid} ] && { pending_git_status_pid=$(write_git_status >&3 3>&- & printf "$!"); } 3>&1
     fi
     [[ $1 != true ]] && print "\x1b[?25h"   # show the cursor again and add final newline
 }
 
 write_git_status() {
-    local git_pid=($(pgrep --full "/usr/bin/git -c gc.auto=0 -C ${VCS_STATUS_WORKDIR} fetch --no-tags --recurse-submodules=no"))
-    if [[ -n ${git_pid} ]]; then
-        # There is an active process, so we update the status line,
-        # wait for `git fetch` to finish and update it again
-        tail --pid=${git_pid[1]} -f /dev/null && {
-            gitstatus_prompt_update
-            # save cursor, go to __position, move line down, move line up, write gitstatus, restore cursor
-            print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
-        }
-    fi
+    # There is an active process, so we update the status line,
+    # wait for `git fetch` to finish and update it again
+    tail --pid=${git_fetch_pid} -f /dev/null &&\
+    gitstatus_prompt_update &&\
+    print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
+    # save cursor, go to __position, move line down, move line up, write gitstatus, restore cursor
 }
 
 # sets prompt. PROMPT has issues with multiline prompts, see
