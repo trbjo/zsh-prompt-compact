@@ -4,9 +4,9 @@ function xterm_title_preexec () {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
     print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)1}"\a"
     if [ ! -z ${VCS_STATUS_WORKDIR} ]; then
-        if [[ $git_fetch_pid ]] && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
-            kill $git_fetch_pid > /dev/null 2>&1
-            unset git_fetch_pid
+        if [[ $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
+            kill $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] > /dev/null 2>&1
+            unset __git_fetch_pwds[${VCS_STATUS_WORKDIR}]
         fi
         [[ ! -z $pending_git_status_pid ]] && kill $pending_git_status_pid > /dev/null 2>&1
         unset pending_git_status_pid
@@ -108,7 +108,8 @@ check_cmd_exec_time() {
 
 
 typeset -gA __last_checks
-typeset -g git_fetch_pid
+typeset -gA __git_fetch_pwds
+
 preprompt() {
     setopt LOCAL_OPTIONS NO_NOTIFY NO_MONITOR
 
@@ -137,12 +138,12 @@ preprompt() {
         if [[ $(($EPOCHSECONDS - ${__last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt 60 ]]; then
             __last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
             { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=59 -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --no-tags --recurse-submodules=no > /dev/null 2>&1 & disown }
-            git_fetch_pid="$!"
+            __git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
         fi
-        if [[ $git_fetch_pid ]] && [ -e /proc/${git_fetch_pid} ]; then
+        if [[ $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [ -e /proc/${__git_fetch_pwds[${VCS_STATUS_WORKDIR}]} ]; then
             { pending_git_status_pid=$(write_git_status >&3 3>&- & printf "$!"); } 3>&1
         else
-            unset git_fetch_pid pending_git_status_pid
+            unset __git_fetch_pwds[${VCS_STATUS_WORKDIR}] pending_git_status_pid
         fi
     fi
     [[ $1 != true ]] && print "\x1b[?25h"   # show the cursor again and add final newline
