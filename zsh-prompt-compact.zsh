@@ -111,7 +111,6 @@ typeset -gA __last_checks
 typeset -gA __git_fetch_pwds
 
 preprompt() {
-    setopt LOCAL_OPTIONS NO_NOTIFY NO_MONITOR
 
     if [[ $1 != true ]]; then
         check_cmd_exec_time
@@ -137,6 +136,7 @@ preprompt() {
 
         if [[ $(($EPOCHSECONDS - ${__last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt 60 ]]; then
             __last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
+            setopt LOCAL_OPTIONS NO_NOTIFY NO_MONITOR
             { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=59 -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --no-tags --recurse-submodules=no > /dev/null 2>&1 & disown }
             __git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
         fi
