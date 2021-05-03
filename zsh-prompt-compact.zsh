@@ -150,12 +150,12 @@ preprompt() {
 }
 
 write_git_status() {
-    # There is an active process, so we update the status line,
-    # wait for `git fetch` to finish and update it again
-    tail --pid=${git_fetch_pid} -f /dev/null &&\
-    gitstatus_prompt_update &&\
-    print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
+    while [[ -e /proc/${__git_fetch_pwds[${VCS_STATUS_WORKDIR}]} ]]; do
+        sleep 0.5
+    done
+    gitstatus_prompt_update
     # save cursor, go to __position, move line down, move line up, write gitstatus, restore cursor
+    print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
 }
 
 # sets prompt. PROMPT has issues with multiline prompts, see
