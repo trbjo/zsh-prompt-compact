@@ -133,7 +133,7 @@ preprompt() {
             print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
         fi
 
-        if [[ ! $__NO_UPDATE ]]; then
+        if [[ $__UPDATE_GIT == true ]]; then
             if [[ $(($EPOCHSECONDS - ${__last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt 60 ]]; then
                 __last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
                 setopt LOCAL_OPTIONS NO_NOTIFY NO_MONITOR
