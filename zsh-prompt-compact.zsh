@@ -8,8 +8,7 @@ function xterm_title_preexec () {
             kill $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] > /dev/null 2>&1
             unset __git_fetch_pwds[${VCS_STATUS_WORKDIR}]
         fi
-        [[ ! -z $pending_git_status_pid ]] && kill $pending_git_status_pid > /dev/null 2>&1
-        unset pending_git_status_pid
+        [[ ! -z $pending_git_status_pid ]] && kill $pending_git_status_pid > /dev/null 2>&1 && unset pending_git_status_pid
     fi
 }
 
