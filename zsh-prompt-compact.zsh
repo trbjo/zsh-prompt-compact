@@ -3,7 +3,7 @@
 function xterm_title_preexec () {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
     if [[ -z $PopUp ]] && [[ ! $2 =~ ^(_zlua\|_file_opener\|exa\|ls\|cd) ]]; then
-        print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)1}"\a"
+        print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)2}"\a"
     fi
     if [ ! -z ${VCS_STATUS_WORKDIR} ]; then
         if [[ $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
