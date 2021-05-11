@@ -19,7 +19,7 @@ function xterm_title_preexec () {
 
 function gitstatus_prompt_update_branch_only() {
     emulate -L zsh
-    typeset -g  GITSTATUS_PROMPT=''
+    typeset -g  GIT_BRANCH=''
     # typeset -gi GITSTATUS_PROMPT_LEN=0
 
     gitstatus_query -p 'MY'                  || return 1  # error
@@ -46,15 +46,15 @@ function gitstatus_prompt_update_branch_only() {
     (( $#where > 32 )) && where[13,-13]="…"  # truncate long branch names and tags
     p+="${clean}${where//\%/%%}"             # escape %
 
-    GITSTATUS_PROMPT=" ${p}%f"
+    GIT_BRANCH=" ${p}%f"
 
-    # The length of GITSTATUS_PROMPT after removing %f and %F.
-    # GITSTATUS_PROMPT_LEN="${(m)#${${GITSTATUS_PROMPT//\%\%/x}//\%(f|<->F)}}"
+    # The length of GIT_BRANCH after removing %f and %F.
+    # GITSTATUS_PROMPT_LEN="${(m)#${${GIT_BRANCH//\%\%/x}//\%(f|<->F)}}"
 }
 
 function gitstatus_prompt_update_changes_only() {
     emulate -L zsh
-    typeset -g  GITSTATUS_PROMPT=''
+    typeset -g  GIT_CHANGES=''
     # typeset -gi GITSTATUS_PROMPT_LEN=0
 
     # Call gitstatus_query synchronously. Note that gitstatus_query can also be called
@@ -92,10 +92,10 @@ function gitstatus_prompt_update_changes_only() {
     # ?42 if have untracked files. It's really a question mark, your font isn't broken.
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
-    GITSTATUS_PROMPT="${p}%f"
+    GIT_CHANGES="${p}%f"
 
-    # The length of GITSTATUS_PROMPT after removing %f and %F.
-    # GITSTATUS_PROMPT_LEN="${(m)#${${GITSTATUS_PROMPT//\%\%/x}//\%(f|<->F)}}"
+    # The length of GIT_CHANGES after removing %f and %F.
+    # GITSTATUS_PROMPT_LEN="${(m)#${${GIT_CHANGES//\%\%/x}//\%(f|<->F)}}"
 }
 
 # taken from Sindre Sorhus
@@ -131,30 +131,30 @@ typeset -gA __last_checks
 typeset -gA __git_fetch_pwds
 
 preprompt() {
-
     if [[ $1 != true ]]; then
+        printf -- "\x1b[?25l"            # hide the cursor while we update
+
         check_cmd_exec_time
         unset cmd_exec_timestamp
 
-        [ ! -w $PWD ] && print -n '\x1B[36m\x1B[0m '
+        [ ! -w $PWD ] && local _read_only=' '
 
         print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' # sets ssh and pwd in terminal title
-        printf -- "\x1b[?25l"            # hide the cursor while we update
 
         gitstatus_prompt_update_branch_only
-        print -Pn -- '%{\e[3m%}%4F%~%<<%f%{\e[0m%}%5F${exec_time}%f${GITSTATUS_PROMPT}'
-        if [[ ${GITSTATUS_PROMPT} ]]; then
+        print -Pn -- '%6F${_read_only}%{\e[3m%}%4F%~%<<%f%{\e[0m%}%5F${exec_time}%f${GIT_BRANCH}'
+        if [[ ${GIT_BRANCH} ]]; then
             printf '\033[6n'                   # ask term for position
             read -s -d\[ __nonce                 # discard first part
             read -s -d R] __position < /dev/tty  # store the position
         fi
-        print "\x1b[?25h"   # show the cursor again and add final newline
+        print -Pn -- '\n${_ssh}\x1b[?25h'   # show the cursor again and add final newline
     fi
 
-    if [[ ${GITSTATUS_PROMPT} ]]; then
+    if [[ ${GIT_BRANCH} ]]; then
         ({
         gitstatus_prompt_update_changes_only
-        print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
+        print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GIT_CHANGES}\x1B[u'
         } & )
 
         if [[ $__UPDATE_GIT == true ]]; then
@@ -179,7 +179,7 @@ write_git_status() {
     done
     gitstatus_prompt_update_changes_only
     # save cursor, go to __position, move line down, move line up, write gitstatus, restore cursor
-    print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
+    print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GIT_CHANGES}\x1B[u'
 }
 
 # sets prompt. PROMPT has issues with multiline prompts, see
@@ -198,5 +198,4 @@ add-zsh-hook precmd preprompt
 # Enable/disable the right prompt options.
 # setopt no_prompt_bang prompt_percent prompt_subst
 
-# The current directory gets truncated from the left if the whole prompt doesn't fit on the line.
-PROMPT='${_ssh}%F{%(?.none.1)}%%%f '     # %/# (normal/root); green/red (ok/error)
+PROMPT='%F{%(?.none.1)}%%%f '     # %/# (normal/root); green/red (ok/error)
