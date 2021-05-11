@@ -148,7 +148,7 @@ preprompt() {
             read -s -d\[ __nonce                 # discard first part
             read -s -d R] __position < /dev/tty  # store the position
         fi
-        print -Pn -- '\n${_ssh}\x1b[?25h'   # show the cursor again and add final newline
+        print -Pn -- "\n${_ssh}\x1b[?25h"   # show the cursor again and add final newline
     fi
 
     if [[ ${GIT_BRANCH} ]]; then
