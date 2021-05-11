@@ -1,13 +1,3 @@
-function set_termtitle_preexec() {
-    if [[ ! $2 =~ ^(_zlua\|_file_opener\|exa\|ls\|cd) ]]; then
-        print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)2}"\a"
-    fi
-}
-
-function set_termtitle_precmd() {
-    print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a'
-}
-
 function xterm_title_preexec() {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
     if [ ! -z ${VCS_STATUS_WORKDIR} ]; then
@@ -173,8 +163,8 @@ gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 # On every prompt, fetch git status and set GITSTATUS_PROMPT.
 autoload -Uz add-zsh-hook
 add-zsh-hook preexec xterm_title_preexec
-[[ -z $PROHIBIT_TERM_TITLE ]] && add-zsh-hook preexec set_termtitle_preexec
-[[ -z $PROHIBIT_TERM_TITLE ]] && add-zsh-hook precmd set_termtitle_precmd
+[[ -z $PROHIBIT_TERM_TITLE ]] && add-zsh-hook preexec (){[[ $2 =~ ^(_zlua\|_file_opener\|exa\|ls\|cd) ]] || print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)2}"\a"}
+[[ -z $PROHIBIT_TERM_TITLE ]] && add-zsh-hook precmd (){ print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' }
 [ $SSH_TTY ] && _ssh="%B[%b%m%B]%b " m="%m: "
 add-zsh-hook precmd preprompt
 
