@@ -1,10 +1,15 @@
-[ $SSH_TTY ] && _ssh="%B[%b%m%B]%b " m="%m: "
-
-function xterm_title_preexec () {
-    typeset -g cmd_exec_timestamp=$EPOCHSECONDS
-    if [[ -z $PopUp ]] && [[ ! $2 =~ ^(_zlua\|_file_opener\|exa\|ls\|cd) ]]; then
+function set_termtitle_preexec() {
+    if [[ ! $2 =~ ^(_zlua\|_file_opener\|exa\|ls\|cd) ]]; then
         print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)2}"\a"
     fi
+}
+
+function set_termtitle_precmd() {
+    print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a'
+}
+
+function xterm_title_preexec() {
+    typeset -g cmd_exec_timestamp=$EPOCHSECONDS
     if [ ! -z ${VCS_STATUS_WORKDIR} ]; then
         if [[ $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
             kill $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] > /dev/null 2>&1
@@ -109,7 +114,6 @@ check_cmd_exec_time() {
     }
 }
 
-
 typeset -gA __last_checks
 typeset -gA __git_fetch_pwds
 typeset -g __position
@@ -119,9 +123,9 @@ preprompt() {
     if [[ $1 != true ]]; then
         check_cmd_exec_time
         unset cmd_exec_timestamp
-        [ ! -w "$PWD" ] && __is_read_only_dir=' '
+        [ ! -w "$PWD" ] && __is_read_only_dir="${READ_ONLY_ICON:-RO} "
         gitstatus_prompt_update_branch_only
-        print -Pn -- '\x1b[?25l\e]2;$m %(8~|…/%6~|%~)\a%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}${__git_branch}%f'
+        print -Pn -- '\x1b[?25l%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}${__git_branch}%f'
         if [[ ${VCS_STATUS_WORKDIR} ]]; then
             printf '\033[6n'                   # ask term for position
             read -s -d\[ __nonce                 # discard first part
@@ -136,7 +140,7 @@ preprompt() {
         } & )
 
         if [[ $__UPDATE_GIT == true ]]; then
-            if [[ $(($EPOCHSECONDS - ${__last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt 60 ]]; then
+            if [[ $(($EPOCHSECONDS - ${__last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_TIMEOUT:-60} ]]; then
                 __last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
                 setopt LOCAL_OPTIONS NO_NOTIFY NO_MONITOR
                     { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=59 -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --no-tags --recurse-submodules=no > /dev/null 2>&1 & disown }
@@ -169,6 +173,9 @@ gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 # On every prompt, fetch git status and set GITSTATUS_PROMPT.
 autoload -Uz add-zsh-hook
 add-zsh-hook preexec xterm_title_preexec
+[[ -z $PROHIBIT_TERM_TITLE ]] && add-zsh-hook preexec set_termtitle_preexec
+[[ -z $PROHIBIT_TERM_TITLE ]] && add-zsh-hook precmd set_termtitle_precmd
+[ $SSH_TTY ] && _ssh="%B[%b%m%B]%b " m="%m: "
 add-zsh-hook precmd preprompt
 
 # Enable/disable the right prompt options.
