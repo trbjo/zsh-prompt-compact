@@ -174,6 +174,6 @@ add-zsh-hook preexec xterm_title_preexec
 add-zsh-hook precmd preprompt
 
 # Enable/disable the right prompt options.
-# setopt no_prompt_bang prompt_percent prompt_subst
+setopt no_prompt_bang prompt_percent prompt_subst
 
 PROMPT='${_ssh}%F{%(?.none.1)}%%%f '     # %/# (normal/root); green/red (ok/error)
