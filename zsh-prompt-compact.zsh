@@ -20,7 +20,8 @@ function xterm_title_preexec () {
 function gitstatus_prompt_update_branch_only() {
     emulate -L zsh
     typeset -g  GITSTATUS_PROMPT=''
-    typeset -gi GITSTATUS_PROMPT_LEN=0
+    # typeset -gi GITSTATUS_PROMPT_LEN=0
+
     gitstatus_query -p 'MY'                  || return 1  # error
     [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
 
@@ -48,13 +49,13 @@ function gitstatus_prompt_update_branch_only() {
     GITSTATUS_PROMPT=" ${p}%f"
 
     # The length of GITSTATUS_PROMPT after removing %f and %F.
-    GITSTATUS_PROMPT_LEN="${(m)#${${GITSTATUS_PROMPT//\%\%/x}//\%(f|<->F)}}"
+    # GITSTATUS_PROMPT_LEN="${(m)#${${GITSTATUS_PROMPT//\%\%/x}//\%(f|<->F)}}"
 }
 
-function gitstatus_prompt_update() {
+function gitstatus_prompt_update_changes_only() {
     emulate -L zsh
     typeset -g  GITSTATUS_PROMPT=''
-    typeset -gi GITSTATUS_PROMPT_LEN=0
+    # typeset -gi GITSTATUS_PROMPT_LEN=0
 
     # Call gitstatus_query synchronously. Note that gitstatus_query can also be called
     # asynchronously; see documentation in gitstatus.plugin.zsh.
@@ -67,20 +68,6 @@ function gitstatus_prompt_update() {
     local conflicted='%2F'  # red foreground
 
     local p
-
-    local where  # branch name, tag or commit
-    if [[ -n $VCS_STATUS_LOCAL_BRANCH ]]; then
-        where=$VCS_STATUS_LOCAL_BRANCH
-    elif [[ -n $VCS_STATUS_TAG ]]; then
-        p+='%f#'
-        where=$VCS_STATUS_TAG
-    else
-        p+='%f@'
-        where=${VCS_STATUS_COMMIT[1,8]}
-    fi
-
-    (( $#where > 32 )) && where[13,-13]="…"  # truncate long branch names and tags
-    p+="${clean}${where//\%/%%}"             # escape %
 
     # ⇣42 if behind the remote.
     (( VCS_STATUS_COMMITS_BEHIND )) && p+=" ${clean}⇣${VCS_STATUS_COMMITS_BEHIND}"
@@ -105,7 +92,7 @@ function gitstatus_prompt_update() {
     # ?42 if have untracked files. It's really a question mark, your font isn't broken.
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
-    GITSTATUS_PROMPT=" ${p}%f"
+    GITSTATUS_PROMPT="${p}%f"
 
     # The length of GITSTATUS_PROMPT after removing %f and %F.
     # GITSTATUS_PROMPT_LEN="${(m)#${${GITSTATUS_PROMPT//\%\%/x}//\%(f|<->F)}}"
@@ -155,21 +142,18 @@ preprompt() {
         printf -- "\x1b[?25l"            # hide the cursor while we update
 
         gitstatus_prompt_update_branch_only
-        print -Pn -- '%{\e[3m%}%4F%~%<<%f%{\e[0m%}%5F${exec_time}%f'
-    fi
-
-    if [[ ${GITSTATUS_PROMPT} ]]; then
-        if [[ $1 != true ]]; then
+        print -Pn -- '%{\e[3m%}%4F%~%<<%f%{\e[0m%}%5F${exec_time}%f${GITSTATUS_PROMPT}'
+        if [[ ${GITSTATUS_PROMPT} ]]; then
             printf '\033[6n'                   # ask term for position
             read -s -d\[ __nonce                 # discard first part
             read -s -d R] __position < /dev/tty  # store the position
-            print -Pn -- '${GITSTATUS_PROMPT}'
-        # else
-            # gitstatus_prompt_update
-            # print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
         fi
+        print "\x1b[?25h"   # show the cursor again and add final newline
+    fi
+
+    if [[ ${GITSTATUS_PROMPT} ]]; then
         ({
-        gitstatus_prompt_update
+        gitstatus_prompt_update_changes_only
         print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
         } & )
 
@@ -187,14 +171,13 @@ preprompt() {
             fi
         fi
     fi
-    [[ $1 != true ]] && print "\x1b[?25h"   # show the cursor again and add final newline
 }
 
 write_git_status() {
     while [[ -e /proc/${__git_fetch_pwds[${VCS_STATUS_WORKDIR}]} ]]; do
         sleep 0.5
     done
-    gitstatus_prompt_update
+    gitstatus_prompt_update_changes_only
     # save cursor, go to __position, move line down, move line up, write gitstatus, restore cursor
     print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
 }
@@ -203,7 +186,7 @@ write_git_status() {
 # https://superuser.com/questions/382503/how-can-i-put-a-newline-in-my-zsh-prompt-without-causing-terminal-redraw-issues
 
 # Start gitstatusd instance with name "MY". The same name is passed to
-# gitstatus_query in gitstatus_prompt_update. The flags with -1 as values
+# gitstatus_query in gitstatus_prompt_update_changes_only. The flags with -1 as values
 # enable staged, unstaged, conflicted and untracked counters.
 gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 
