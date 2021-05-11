@@ -18,7 +18,6 @@ function xterm_title_preexec () {
 #
 
 function gitstatus_prompt_update_branch_only() {
-    emulate -L zsh
 
     gitstatus_query -p 'MY'                  || return 1  # error
     [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
@@ -35,7 +34,7 @@ function gitstatus_prompt_update_branch_only() {
     fi
 
     (( $#where > 32 )) && where[13,-13]="…"  # truncate long branch names and tags
-    __git_branch=" ${p}%18F${where//\%/%%}%f"
+    __git_branch=" ${p}%18F${where//\%/%%}"
 }
 
 function gitstatus_prompt_update_changes_only() {
@@ -51,32 +50,33 @@ function gitstatus_prompt_update_changes_only() {
     local  untracked='%12F'   # blue foreground
     local conflicted='%2F'  # red foreground
 
-    local p
+    local __git_changes
 
     # ⇣42 if behind the remote.
-    (( VCS_STATUS_COMMITS_BEHIND )) && p+=" ${clean}⇣${VCS_STATUS_COMMITS_BEHIND}"
+    (( VCS_STATUS_COMMITS_BEHIND )) && __git_changes+=" ${clean}⇣${VCS_STATUS_COMMITS_BEHIND}"
     # ⇡42 if ahead of the remote; no leading space if also behind the remote: ⇣42⇡42.
-    (( VCS_STATUS_COMMITS_AHEAD && !VCS_STATUS_COMMITS_BEHIND )) && p+=" "
-    (( VCS_STATUS_COMMITS_AHEAD  )) && p+="${clean}⇡${VCS_STATUS_COMMITS_AHEAD}"
+    (( VCS_STATUS_COMMITS_AHEAD && !VCS_STATUS_COMMITS_BEHIND )) && __git_changes+=" "
+    (( VCS_STATUS_COMMITS_AHEAD  )) && __git_changes+="${clean}⇡${VCS_STATUS_COMMITS_AHEAD}"
     # ⇠42 if behind the push remote.
-    (( VCS_STATUS_PUSH_COMMITS_BEHIND )) && p+=" ${clean}⇠${VCS_STATUS_PUSH_COMMITS_BEHIND}"
-    (( VCS_STATUS_PUSH_COMMITS_AHEAD && !VCS_STATUS_PUSH_COMMITS_BEHIND )) && p+=" "
+    (( VCS_STATUS_PUSH_COMMITS_BEHIND )) && __git_changes+=" ${clean}⇠${VCS_STATUS_PUSH_COMMITS_BEHIND}"
+    (( VCS_STATUS_PUSH_COMMITS_AHEAD && !VCS_STATUS_PUSH_COMMITS_BEHIND )) && __git_changes+=" "
     # ⇢42 if ahead of the push remote; no leading space if also behind: ⇠42⇢42.
-    (( VCS_STATUS_PUSH_COMMITS_AHEAD  )) && p+="${clean}⇢${VCS_STATUS_PUSH_COMMITS_AHEAD}"
+    (( VCS_STATUS_PUSH_COMMITS_AHEAD  )) && __git_changes+="${clean}⇢${VCS_STATUS_PUSH_COMMITS_AHEAD}"
     # *42 if have stashes.
-    (( VCS_STATUS_STASHES        )) && p+=" ${clean}*${VCS_STATUS_STASHES}"
+    (( VCS_STATUS_STASHES        )) && __git_changes+=" ${clean}*${VCS_STATUS_STASHES}"
     # 'merge' if the repo is in an unusual state.
-    [[ -n $VCS_STATUS_ACTION     ]] && p+=" ${conflicted}${VCS_STATUS_ACTION}"
+    [[ -n $VCS_STATUS_ACTION     ]] && __git_changes+=" ${conflicted}${VCS_STATUS_ACTION}"
     # ~42 if have merge conflicts.
-    (( VCS_STATUS_NUM_CONFLICTED )) && p+=" ${conflicted}~${VCS_STATUS_NUM_CONFLICTED}"
+    (( VCS_STATUS_NUM_CONFLICTED )) && __git_changes+=" ${conflicted}~${VCS_STATUS_NUM_CONFLICTED}"
     # +42 if have staged changes.
-    (( VCS_STATUS_NUM_STAGED     )) && p+=" ${modified}+${VCS_STATUS_NUM_STAGED}"
+    (( VCS_STATUS_NUM_STAGED     )) && __git_changes+=" ${modified}+${VCS_STATUS_NUM_STAGED}"
     # !42 if have unstaged changes.
-    (( VCS_STATUS_NUM_UNSTAGED   )) && p+=" ${modified}!${VCS_STATUS_NUM_UNSTAGED}"
+    (( VCS_STATUS_NUM_UNSTAGED   )) && __git_changes+=" ${modified}!${VCS_STATUS_NUM_UNSTAGED}"
     # ?42 if have untracked files. It's really a question mark, your font isn't broken.
-    (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
+    (( VCS_STATUS_NUM_UNTRACKED  )) && __git_changes+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
-    __git_changes="${p}%f"
+    # save cursor, go to __position, move line down, move line up, write git changes, restore cursor
+    print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${__git_changes}%f\x1B[u'
 }
 
 # taken from Sindre Sorhus
@@ -113,7 +113,7 @@ typeset -gA __git_fetch_pwds
 typeset -g __position
 
 preprompt() {
-    local __git_branch __git_changes __nonce __is_read_only_dir
+    local __git_branch __nonce __is_read_only_dir
     if [[ $1 != true ]]; then
         check_cmd_exec_time
         unset cmd_exec_timestamp
@@ -121,8 +121,8 @@ preprompt() {
         [ ! -w "$PWD" ] && __is_read_only_dir=' '
         print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' # sets ssh and pwd in terminal title
         gitstatus_prompt_update_branch_only
-        print -Pn -- '%6F${__is_read_only_dir}%{\e[3m%}%4F%~%<<%f%{\e[0m%}%5F${exec_time}%f${__git_branch}'
-        if [[ ${__git_branch} ]]; then
+        print -Pn -- '%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}${__git_branch}%f'
+        if [[ ${VCS_STATUS_WORKDIR} ]]; then
             printf '\033[6n'                   # ask term for position
             read -s -d\[ __nonce                 # discard first part
             read -s -d R] __position < /dev/tty  # store the position
@@ -133,7 +133,6 @@ preprompt() {
     if [[ ${VCS_STATUS_WORKDIR} ]]; then
         ({
             gitstatus_prompt_update_changes_only
-            print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${__git_changes}\x1B[u'
         } & )
 
         if [[ $__UPDATE_GIT == true ]]; then
@@ -157,8 +156,6 @@ write_git_status() {
         sleep 0.5
     done
     gitstatus_prompt_update_changes_only
-    # save cursor, go to __position, move line down, move line up, write gitstatus, restore cursor
-    print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${__git_changes}\x1B[u'
 }
 
 # sets prompt. PROMPT has issues with multiline prompts, see
