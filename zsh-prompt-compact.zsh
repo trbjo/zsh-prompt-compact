@@ -1,5 +1,4 @@
 [ $SSH_TTY ] && _ssh="%B[%b%m%B]%b " m="%m: "
-echo $SSH_TTY
 
 function xterm_title_preexec () {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
@@ -149,7 +148,7 @@ preprompt() {
             read -s -d\[ __nonce                 # discard first part
             read -s -d R] __position < /dev/tty  # store the position
         fi
-        print -Pn -- '\n${_ssh}\x1b[?25h'   # show the cursor again and add final newline
+        print -- '\x1b[?25h'   # show the cursor again and add final newline
     fi
 
     if [[ ${GIT_BRANCH} ]]; then
@@ -199,4 +198,4 @@ add-zsh-hook precmd preprompt
 # Enable/disable the right prompt options.
 # setopt no_prompt_bang prompt_percent prompt_subst
 
-PROMPT='%F{%(?.none.1)}%%%f '     # %/# (normal/root); green/red (ok/error)
+PROMPT='${_ssh}%F{%(?.none.1)}%%%f '     # %/# (normal/root); green/red (ok/error)
