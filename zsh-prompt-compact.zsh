@@ -23,14 +23,7 @@ function gitstatus_prompt_update_branch_only() {
     gitstatus_query -p 'MY'                  || return 1  # error
     [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
 
-    local      clean='%242F'   # green foreground
-    local   modified='%3F'  # yellow foreground
-    local  untracked='%12F'   # blue foreground
-    local conflicted='%2F'  # red foreground
-
-    local p
-
-    local where  # branch name, tag or commit
+    local p where  # branch name, tag or commit
     if [[ -n $VCS_STATUS_LOCAL_BRANCH ]]; then
         where=$VCS_STATUS_LOCAL_BRANCH
     elif [[ -n $VCS_STATUS_TAG ]]; then
@@ -42,9 +35,7 @@ function gitstatus_prompt_update_branch_only() {
     fi
 
     (( $#where > 32 )) && where[13,-13]="…"  # truncate long branch names and tags
-    p+="${clean}${where//\%/%%}"             # escape %
-
-    __git_branch=" ${p}%f"
+    __git_branch=" %18F${where//\%/%%}%f"             # escape %
 }
 
 function gitstatus_prompt_update_changes_only() {
@@ -55,7 +46,7 @@ function gitstatus_prompt_update_changes_only() {
     gitstatus_query 'MY'                  || return 1  # error
     [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
 
-    local      clean='%242F'   # green foreground
+    local      clean='%6F'   # cyan foreground
     local   modified='%3F'  # yellow foreground
     local  untracked='%12F'   # blue foreground
     local conflicted='%2F'  # red foreground
