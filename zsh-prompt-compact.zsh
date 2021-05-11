@@ -19,8 +19,6 @@ function xterm_title_preexec () {
 
 function gitstatus_prompt_update_branch_only() {
     emulate -L zsh
-    typeset -g  GIT_BRANCH=''
-    # typeset -gi GITSTATUS_PROMPT_LEN=0
 
     gitstatus_query -p 'MY'                  || return 1  # error
     [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
@@ -46,16 +44,11 @@ function gitstatus_prompt_update_branch_only() {
     (( $#where > 32 )) && where[13,-13]="…"  # truncate long branch names and tags
     p+="${clean}${where//\%/%%}"             # escape %
 
-    GIT_BRANCH=" ${p}%f"
-
-    # The length of GIT_BRANCH after removing %f and %F.
-    # GITSTATUS_PROMPT_LEN="${(m)#${${GIT_BRANCH//\%\%/x}//\%(f|<->F)}}"
+    __git_branch=" ${p}%f"
 }
 
 function gitstatus_prompt_update_changes_only() {
     emulate -L zsh
-    typeset -g  GIT_CHANGES=''
-    # typeset -gi GITSTATUS_PROMPT_LEN=0
 
     # Call gitstatus_query synchronously. Note that gitstatus_query can also be called
     # asynchronously; see documentation in gitstatus.plugin.zsh.
@@ -92,10 +85,7 @@ function gitstatus_prompt_update_changes_only() {
     # ?42 if have untracked files. It's really a question mark, your font isn't broken.
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
-    GIT_CHANGES="${p}%f"
-
-    # The length of GIT_CHANGES after removing %f and %F.
-    # GITSTATUS_PROMPT_LEN="${(m)#${${GIT_CHANGES//\%\%/x}//\%(f|<->F)}}"
+    __git_changes="${p}%f"
 }
 
 # taken from Sindre Sorhus
@@ -131,19 +121,16 @@ typeset -gA __last_checks
 typeset -gA __git_fetch_pwds
 
 preprompt() {
+    local __git_branch __git_changes __position __nonce _read_only
     if [[ $1 != true ]]; then
-        printf -- "\x1b[?25l"            # hide the cursor while we update
-
         check_cmd_exec_time
         unset cmd_exec_timestamp
-
-        [ ! -w $PWD ] && local _read_only=' '
-
+        printf -- "\x1b[?25l"            # hide the cursor while we update
+        [ ! -w "$PWD" ] && _read_only=' '
         print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' # sets ssh and pwd in terminal title
-
         gitstatus_prompt_update_branch_only
-        print -Pn -- '%6F${_read_only}%{\e[3m%}%4F%~%<<%f%{\e[0m%}%5F${exec_time}%f${GIT_BRANCH}'
-        if [[ ${GIT_BRANCH} ]]; then
+        print -Pn -- '%6F${_read_only}%{\e[3m%}%4F%~%<<%f%{\e[0m%}%5F${exec_time}%f${__git_branch}'
+        if [[ ${__git_branch} ]]; then
             printf '\033[6n'                   # ask term for position
             read -s -d\[ __nonce                 # discard first part
             read -s -d R] __position < /dev/tty  # store the position
@@ -151,10 +138,10 @@ preprompt() {
         print -- '\x1b[?25h'   # show the cursor again and add final newline
     fi
 
-    if [[ ${GIT_BRANCH} ]]; then
+    if [[ ${__git_branch} ]]; then
         ({
-        gitstatus_prompt_update_changes_only
-        print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GIT_CHANGES}\x1B[u'
+            gitstatus_prompt_update_changes_only
+            print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${__git_changes}\x1B[u'
         } & )
 
         if [[ $__UPDATE_GIT == true ]]; then
@@ -179,7 +166,7 @@ write_git_status() {
     done
     gitstatus_prompt_update_changes_only
     # save cursor, go to __position, move line down, move line up, write gitstatus, restore cursor
-    print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GIT_CHANGES}\x1B[u'
+    print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${__git_changes}\x1B[u'
 }
 
 # sets prompt. PROMPT has issues with multiline prompts, see
