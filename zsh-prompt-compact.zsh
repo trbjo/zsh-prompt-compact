@@ -17,6 +17,40 @@ function xterm_title_preexec () {
 # $GITSTATUS_PROMPT will occupy when printed.
 #
 
+function gitstatus_prompt_update_branch_only() {
+    emulate -L zsh
+    typeset -g  GITSTATUS_PROMPT=''
+    typeset -gi GITSTATUS_PROMPT_LEN=0
+    gitstatus_query -p 'MY'                  || return 1  # error
+    [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
+
+    local      clean='%242F'   # green foreground
+    local   modified='%3F'  # yellow foreground
+    local  untracked='%12F'   # blue foreground
+    local conflicted='%2F'  # red foreground
+
+    local p
+
+    local where  # branch name, tag or commit
+    if [[ -n $VCS_STATUS_LOCAL_BRANCH ]]; then
+        where=$VCS_STATUS_LOCAL_BRANCH
+    elif [[ -n $VCS_STATUS_TAG ]]; then
+        p+='%f#'
+        where=$VCS_STATUS_TAG
+    else
+        p+='%f@'
+        where=${VCS_STATUS_COMMIT[1,8]}
+    fi
+
+    (( $#where > 32 )) && where[13,-13]="…"  # truncate long branch names and tags
+    p+="${clean}${where//\%/%%}"             # escape %
+
+    GITSTATUS_PROMPT="${p}%f"
+
+    # The length of GITSTATUS_PROMPT after removing %f and %F.
+    GITSTATUS_PROMPT_LEN="${(m)#${${GITSTATUS_PROMPT//\%\%/x}//\%(f|<->F)}}"
+}
+
 function gitstatus_prompt_update() {
     emulate -L zsh
     typeset -g  GITSTATUS_PROMPT=''
@@ -120,7 +154,7 @@ preprompt() {
         print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' # sets ssh and pwd in terminal title
         printf -- "\x1b[?25l"            # hide the cursor while we update
 
-        gitstatus_prompt_update
+        gitstatus_prompt_update_branch_only
         print -Pn -- '%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%} %5F${exec_time}%f'
     fi
 
@@ -130,10 +164,14 @@ preprompt() {
             read -s -d\[ __nonce                 # discard first part
             read -s -d R] __position < /dev/tty  # store the position
             print -Pn -- '${GITSTATUS_PROMPT}'
-        else
-            gitstatus_prompt_update
-            print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
+        # else
+            # gitstatus_prompt_update
+            # print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
         fi
+        ({
+        gitstatus_prompt_update
+        print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${GITSTATUS_PROMPT}\x1B[u'
+        } & )
 
         if [[ $__UPDATE_GIT == true ]]; then
             if [[ $(($EPOCHSECONDS - ${__last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt 60 ]]; then
@@ -175,7 +213,7 @@ add-zsh-hook preexec xterm_title_preexec
 add-zsh-hook precmd preprompt
 
 # Enable/disable the right prompt options.
-setopt no_prompt_bang prompt_percent prompt_subst
+# setopt no_prompt_bang prompt_percent prompt_subst
 
 # The current directory gets truncated from the left if the whole prompt doesn't fit on the line.
 PROMPT='${_ssh}%F{%(?.none.1)}%%%f '     # %/# (normal/root); green/red (ok/error)
