@@ -35,8 +35,7 @@ function gitstatus_prompt_update_branch_only() {
     fi
 
     (( $#where > 32 )) && where[13,-13]="…"  # truncate long branch names and tags
-    p+="%18F${where//\%/%%}"             # escape %
-    __git_branch=" ${p}%f"
+    __git_branch=" ${p}%18F${where//\%/%%}%f"
 }
 
 function gitstatus_prompt_update_changes_only() {
