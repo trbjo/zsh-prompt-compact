@@ -105,10 +105,10 @@ function gitstatus_prompt_update() {
     # ?42 if have untracked files. It's really a question mark, your font isn't broken.
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
-    GITSTATUS_PROMPT="${p}%f"
+    GITSTATUS_PROMPT=" ${p}%f"
 
     # The length of GITSTATUS_PROMPT after removing %f and %F.
-    GITSTATUS_PROMPT_LEN="${(m)#${${GITSTATUS_PROMPT//\%\%/x}//\%(f|<->F)}}"
+    # GITSTATUS_PROMPT_LEN="${(m)#${${GITSTATUS_PROMPT//\%\%/x}//\%(f|<->F)}}"
 }
 
 # taken from Sindre Sorhus
@@ -125,7 +125,7 @@ human_time_to_var() {
     human+="${seconds}s"
 
     # Store human readable time in a variable as specified by the caller
-    typeset -g "${var}"="${human} "
+    typeset -g "${var}"=" ${human}"
 }
 
 # Stores (into exec_time) the execution
@@ -155,7 +155,7 @@ preprompt() {
         printf -- "\x1b[?25l"            # hide the cursor while we update
 
         gitstatus_prompt_update_branch_only
-        print -Pn -- '%{\e[3m%}%4F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f%{\e[0m%} %5F${exec_time}%f'
+        print -Pn -- '%{\e[3m%}%4F%~%<<%f%{\e[0m%}%5F${exec_time}%f'
     fi
 
     if [[ ${GITSTATUS_PROMPT} ]]; then
