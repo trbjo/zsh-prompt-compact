@@ -2,7 +2,9 @@
 
 function xterm_title_preexec () {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
-    print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)1}"\a"
+    if [[ ! $2 =~ ^(_file_opener\|exa\|ls\|cd) ]]; then
+        print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)1}"\a"
+    fi
     if [ ! -z ${VCS_STATUS_WORKDIR} ]; then
         if [[ $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
             kill $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] > /dev/null 2>&1
@@ -117,11 +119,9 @@ preprompt() {
     if [[ $1 != true ]]; then
         check_cmd_exec_time
         unset cmd_exec_timestamp
-        printf -- "\x1b[?25l"            # hide the cursor while we update
         [ ! -w "$PWD" ] && __is_read_only_dir=' '
-        print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' # sets ssh and pwd in terminal title
         gitstatus_prompt_update_branch_only
-        print -Pn -- '%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}${__git_branch}%f'
+        print -Pn -- '\x1b[?25l\e]2;$m %(8~|…/%6~|%~)\a%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}${__git_branch}%f'
         if [[ ${VCS_STATUS_WORKDIR} ]]; then
             printf '\033[6n'                   # ask term for position
             read -s -d\[ __nonce                 # discard first part
