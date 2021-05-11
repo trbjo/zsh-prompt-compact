@@ -45,7 +45,7 @@ function gitstatus_prompt_update_branch_only() {
     (( $#where > 32 )) && where[13,-13]="…"  # truncate long branch names and tags
     p+="${clean}${where//\%/%%}"             # escape %
 
-    GITSTATUS_PROMPT="${p}%f"
+    GITSTATUS_PROMPT=" ${p}%f"
 
     # The length of GITSTATUS_PROMPT after removing %f and %F.
     GITSTATUS_PROMPT_LEN="${(m)#${${GITSTATUS_PROMPT//\%\%/x}//\%(f|<->F)}}"
