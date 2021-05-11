@@ -110,17 +110,18 @@ check_cmd_exec_time() {
 
 typeset -gA __last_checks
 typeset -gA __git_fetch_pwds
+typeset -g __position
 
 preprompt() {
-    local __git_branch __git_changes __position __nonce _read_only
+    local __git_branch __git_changes __nonce __is_read_only_dir
     if [[ $1 != true ]]; then
         check_cmd_exec_time
         unset cmd_exec_timestamp
         printf -- "\x1b[?25l"            # hide the cursor while we update
-        [ ! -w "$PWD" ] && _read_only=' '
+        [ ! -w "$PWD" ] && __is_read_only_dir=' '
         print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' # sets ssh and pwd in terminal title
         gitstatus_prompt_update_branch_only
-        print -Pn -- '%6F${_read_only}%{\e[3m%}%4F%~%<<%f%{\e[0m%}%5F${exec_time}%f${__git_branch}'
+        print -Pn -- '%6F${__is_read_only_dir}%{\e[3m%}%4F%~%<<%f%{\e[0m%}%5F${exec_time}%f${__git_branch}'
         if [[ ${__git_branch} ]]; then
             printf '\033[6n'                   # ask term for position
             read -s -d\[ __nonce                 # discard first part
@@ -129,7 +130,7 @@ preprompt() {
         print -- '\x1b[?25h'   # show the cursor again and add final newline
     fi
 
-    if [[ ${__git_branch} ]]; then
+    if [[ ${VCS_STATUS_WORKDIR} ]]; then
         ({
             gitstatus_prompt_update_changes_only
             print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${__git_changes}\x1B[u'
