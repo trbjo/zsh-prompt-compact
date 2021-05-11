@@ -1,4 +1,5 @@
 [ $SSH_TTY ] && _ssh="%B[%b%m%B]%b " m="%m: "
+echo $SSH_TTY
 
 function xterm_title_preexec () {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
