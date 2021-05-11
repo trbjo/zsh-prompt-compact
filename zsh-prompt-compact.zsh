@@ -115,6 +115,8 @@ preprompt() {
         check_cmd_exec_time
         unset cmd_exec_timestamp
 
+        [ ! -w $PWD ] && print -n '\x1B[36m\x1B[0m '
+
         print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a' # sets ssh and pwd in terminal title
         printf -- "\x1b[?25l"            # hide the cursor while we update
 
