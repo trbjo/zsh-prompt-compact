@@ -117,7 +117,7 @@ preprompt() {
         gitstatus_prompt_update_branch_only
         print -Pn -- '\x1b[?25l%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}${__git_branch}%f'
         if [[ ${VCS_STATUS_WORKDIR} ]]; then
-            printf '\033[6n'                   # ask term for position
+            printf '\033[6n' > /dev/tty          # ask term for position
             read -s -d\[ __nonce                 # discard first part
             read -s -d R] __position < /dev/tty  # store the position
         fi
