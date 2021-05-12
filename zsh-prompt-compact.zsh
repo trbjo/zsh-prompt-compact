@@ -1,5 +1,6 @@
 function set_termtitle_preexec() {
-    if command -v ${2%% *} > /dev/null 2>&1 && [[ ! $2 =~ ^(clear\|_zlua\|_file_opener\|exa\|ls\|cd) ]]; then
+    first_arg=${2%% *}
+    if command -v ${first_arg} > /dev/null 2>&1 && [[ ! ${first_arg} =~ ^(_file_opener|_zlua|cd|clear|exa|ls|stat)$ ]]; then
         print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)2}"\a"
     fi
 }
