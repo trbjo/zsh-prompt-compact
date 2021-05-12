@@ -125,7 +125,7 @@ preprompt() {
     fi
 
     if [[ ${VCS_STATUS_WORKDIR} ]]; then
-        ({gitstatus_prompt_update_changes_only} &)
+        (gitstatus_prompt_update_changes_only &)
         if [[ $__UPDATE_GIT == true ]]; then
             if [[ $(($EPOCHSECONDS - ${__last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_TIMEOUT:-60} ]]; then
                 __last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
