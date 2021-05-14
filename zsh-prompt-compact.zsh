@@ -109,20 +109,41 @@ typeset -gA __git_fetch_pwds
 typeset -g _pos
 preprompt() {
     local __git_branch _n __is_read_only_dir
-    if [[ $1 != true ]]; then
-        check_cmd_exec_time
-        unset cmd_exec_timestamp
-        [ ! -w "$PWD" ] && __is_read_only_dir="${READ_ONLY_ICON:-RO} "
-        gitstatus_update_branch_only
-        if [[ ${VCS_STATUS_WORKDIR} ]]; then
-            print -P -- '\x1b[?25l%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}${__git_branch}%f\x1b[6n\x1b[?25h'
-            read -s -d\[ _n           # discard first part
-            read -s -d R] _pos < $TTY # store the position
-        else
-            print -P -- '\x1b[?25l%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}%f\x1b[?25h'
-        fi
-    fi
+    check_cmd_exec_time
+    unset cmd_exec_timestamp
+    [ ! -w "$PWD" ] && __is_read_only_dir="${READ_ONLY_ICON:-RO} "
+    gitstatus_update_branch_only
+    if [[ ${VCS_STATUS_WORKDIR} ]]; then
+        print -P -- '\x1b[?25l%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}${__git_branch}%f\x1b[6n\x1b[?25h'
+        read -s -d\[ _n           # discard first part
+        read -s -d R] _pos < $TTY # store the position
 
+        gitstatus_update_changes_only &!
+
+        if [[ $__UPDATE_GIT != true ]]; then
+            return
+        fi
+
+        if [[ $(($EPOCHSECONDS - ${__last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_TIMEOUT:-60} ]]; then
+            __last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
+            env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=59 -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &!
+            __git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
+        fi
+
+        if [[ $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [[ -e "/proc/${__git_fetch_pwds[${VCS_STATUS_WORKDIR}]}" ]]; then
+            if [[ -z $pending_git_status_pid ]]; then
+                write_git_status &!
+                pending_git_status_pid="$!"
+            fi
+        else
+            unset __git_fetch_pwds[${VCS_STATUS_WORKDIR}]
+        fi
+    else
+        print -P -- '\x1b[?25l%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}%f\x1b[?25h'
+    fi
+}
+
+update_git_status() {
     if [[ ${VCS_STATUS_WORKDIR} ]]; then
         gitstatus_update_changes_only &!
         if [[ $__UPDATE_GIT == true ]]; then
