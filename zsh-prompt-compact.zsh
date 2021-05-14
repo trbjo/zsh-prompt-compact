@@ -72,8 +72,8 @@ function gitstatus_prompt_update_changes_only() {
     (( VCS_STATUS_NUM_UNSTAGED   )) && total_changes+=" ${modified}!${VCS_STATUS_NUM_UNSTAGED}"
     # ?42 if have untracked files. It's really a question mark, your font isn't broken.
     (( VCS_STATUS_NUM_UNTRACKED  )) && total_changes+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
-    # save cursor, go to __position, move line down, move line up, write git changes, restore cursor
-    print -Pn -- '\x1B[s\x1B[${__position}H\x1B[B\x1B[A\x1B[0K${total_changes}%f\x1B[u'
+    # save cursor, go to _pos, move line down, move line up, write git changes, restore cursor
+    print -Pn -- '\x1B[s\x1B[${_pos}H\x1B[B\x1B[A\x1B[0K${total_changes}%f\x1B[u'
 }
 
 # taken from Sindre Sorhus
@@ -106,8 +106,7 @@ check_cmd_exec_time() {
 
 typeset -gA __last_checks
 typeset -gA __git_fetch_pwds
-typeset -g __position
-
+typeset -g _pos
 preprompt() {
     local __git_branch __nonce __is_read_only_dir
     if [[ $1 != true ]]; then
@@ -118,8 +117,8 @@ preprompt() {
         print -Pn -- '\x1b[?25l%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}${__git_branch}%f'
         if [[ ${VCS_STATUS_WORKDIR} ]]; then
             printf '\033[6n' > /dev/tty          # ask term for position
-            read -s -d\[ __nonce                 # discard first part
-            read -s -d R] __position < /dev/tty  # store the position
+            read -s -d\[ _n           # discard first part
+            read -s -d R] _pos < $TTY # store the position
         fi
         print -- '\x1b[?25h'   # show the cursor again and add final newline
     fi
