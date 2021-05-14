@@ -11,7 +11,7 @@ function set_termtitle_precmd() {
 
 function xterm_title_preexec() {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
-    if [ ! -z ${VCS_STATUS_WORKDIR} ]; then
+    if [[ ! -z ${VCS_STATUS_WORKDIR} ]]; then
         if [[ $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
             kill $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] > /dev/null 2>&1
             unset __git_fetch_pwds[${VCS_STATUS_WORKDIR}]
@@ -20,7 +20,7 @@ function xterm_title_preexec() {
     fi
 }
 
-function gitstatus_prompt_update_branch_only() {
+function gitstatus_update_branch_only() {
     gitstatus_query -p 'MY'               || return 1  # error
     [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
 
@@ -39,7 +39,7 @@ function gitstatus_prompt_update_branch_only() {
     __git_branch=" ${p}%18F${where//\%/%%}"
 }
 
-function gitstatus_prompt_update_changes_only() {
+function gitstatus_update_changes_only() {
     emulate -L zsh
     gitstatus_query 'MY'                  || return 1  # error
     [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
@@ -108,34 +108,36 @@ typeset -gA __last_checks
 typeset -gA __git_fetch_pwds
 typeset -g _pos
 preprompt() {
-    local __git_branch __nonce __is_read_only_dir
+    local __git_branch _n __is_read_only_dir
     if [[ $1 != true ]]; then
         check_cmd_exec_time
         unset cmd_exec_timestamp
         [ ! -w "$PWD" ] && __is_read_only_dir="${READ_ONLY_ICON:-RO} "
-        gitstatus_prompt_update_branch_only
-        print -Pn -- '\x1b[?25l%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}${__git_branch}%f'
+        gitstatus_update_branch_only
         if [[ ${VCS_STATUS_WORKDIR} ]]; then
-            printf '\033[6n' > /dev/tty          # ask term for position
+            print -P -- '\x1b[?25l%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}${__git_branch}%f\x1b[6n\x1b[?25h'
             read -s -d\[ _n           # discard first part
             read -s -d R] _pos < $TTY # store the position
+        else
+            print -P -- '\x1b[?25l%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}%f\x1b[?25h'
         fi
-        print -- '\x1b[?25h'   # show the cursor again and add final newline
     fi
 
     if [[ ${VCS_STATUS_WORKDIR} ]]; then
-        (gitstatus_prompt_update_changes_only &)
+        gitstatus_update_changes_only &!
         if [[ $__UPDATE_GIT == true ]]; then
             if [[ $(($EPOCHSECONDS - ${__last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_TIMEOUT:-60} ]]; then
                 __last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
-                setopt LOCAL_OPTIONS NO_NOTIFY NO_MONITOR
-                env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=59 -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 & disown
+                env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=59 -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &!
                 __git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
             fi
-            if [[ $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [ -e /proc/${__git_fetch_pwds[${VCS_STATUS_WORKDIR}]} ]; then
-                { pending_git_status_pid=$(write_git_status >&3 3>&- & printf "$!"); } 3>&1
+            if [[ $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [[ -e "/proc/${__git_fetch_pwds[${VCS_STATUS_WORKDIR}]}" ]]; then
+                if [[ -z $pending_git_status_pid ]]; then
+                    write_git_status &!
+                    pending_git_status_pid="$!"
+                fi
             else
-                unset __git_fetch_pwds[${VCS_STATUS_WORKDIR}] pending_git_status_pid
+                unset __git_fetch_pwds[${VCS_STATUS_WORKDIR}]
             fi
         fi
     fi
@@ -145,14 +147,14 @@ write_git_status() {
     while [[ -e /proc/${__git_fetch_pwds[${VCS_STATUS_WORKDIR}]} ]]; do
         sleep 0.5
     done
-    gitstatus_prompt_update_changes_only
+    gitstatus_update_changes_only
 }
 
 # sets prompt. PROMPT has issues with multiline prompts, see
 # https://superuser.com/questions/382503/how-can-i-put-a-newline-in-my-zsh-prompt-without-causing-terminal-redraw-issues
 
 # Start gitstatusd instance with name "MY". The same name is passed to
-# gitstatus_query in gitstatus_prompt_update_changes_only. The flags with -1 as values
+# gitstatus_query in gitstatus_update_changes_only. The flags with -1 as values
 # enable staged, unstaged, conflicted and untracked counters.
 gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 
