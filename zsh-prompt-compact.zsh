@@ -131,7 +131,7 @@ update_git_status() {
     fi
 
     # existing pid means we are still waiting for git process to finish
-    if [[ -e "/proc/${_git_fetch_pwds[${VCS_STATUS_WORKDIR}]:-0}" ]]; then
+    if [[ -e "/proc/${_git_fetch_pwds[${VCS_STATUS_WORKDIR}]:-0}" ]] && [[ -z $_wait_for_git_fetch_pid ]]; then
         wait_for_git_fetch &!
         _wait_for_git_fetch_pid="$!"
     fi
