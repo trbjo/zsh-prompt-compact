@@ -12,68 +12,18 @@ function set_termtitle_precmd() {
 function control_git_sideeffects_preexec() {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
     if [[ ! -z ${VCS_STATUS_WORKDIR} ]]; then
-        if [[ $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
-            kill $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] > /dev/null 2>&1
-            unset __git_fetch_pwds[${VCS_STATUS_WORKDIR}]
+
+        if [[ $_git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
+            kill $_git_fetch_pwds[${VCS_STATUS_WORKDIR}] > /dev/null 2>&1
+            unset _git_fetch_pwds[${VCS_STATUS_WORKDIR}]
         fi
-        [[ ! -z $pending_git_status_pid ]] && kill $pending_git_status_pid > /dev/null 2>&1 && unset pending_git_status_pid
+
+        if [[ $_wait_for_git_fetch_pid ]]; then
+            kill $_wait_for_git_fetch_pid > /dev/null 2>&1
+            unset _wait_for_git_fetch_pid
+        fi
+
     fi
-}
-
-function gitstatus_update_branch_only() {
-    gitstatus_query -p 'MY'               || return 1  # error
-    [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
-
-    local p where  # branch name, tag or commit
-    if [[ -n $VCS_STATUS_LOCAL_BRANCH ]]; then
-        where=$VCS_STATUS_LOCAL_BRANCH
-    elif [[ -n $VCS_STATUS_TAG ]]; then
-        p+='%f#'
-        where=$VCS_STATUS_TAG
-    else
-        p+='%f@'
-        where=${VCS_STATUS_COMMIT[1,8]}
-    fi
-
-    (( $#where > 32 )) && where[13,-13]="…"  # truncate long branch names and tags
-    __git_branch=" ${p}%18F${where//\%/%%}"
-}
-
-function gitstatus_update_changes_only() {
-    emulate -L zsh
-    gitstatus_query 'MY'                  || return 1  # error
-    [[ $VCS_STATUS_RESULT == 'ok-sync' ]] || return 0  # not a git repo
-
-    local      clean='%6F'   # cyan foreground
-    local   modified='%3F'  # yellow foreground
-    local  untracked='%12F'   # blue foreground
-    local conflicted='%2F'  # red foreground
-    local total_changes
-
-    # ⇣42 if behind the remote.
-    (( VCS_STATUS_COMMITS_BEHIND )) && total_changes+=" ${clean}⇣${VCS_STATUS_COMMITS_BEHIND}"
-    # ⇡42 if ahead of the remote; no leading space if also behind the remote: ⇣42⇡42.
-    (( VCS_STATUS_COMMITS_AHEAD && !VCS_STATUS_COMMITS_BEHIND )) && total_changes+=" "
-    (( VCS_STATUS_COMMITS_AHEAD  )) && total_changes+="${clean}⇡${VCS_STATUS_COMMITS_AHEAD}"
-    # ⇠42 if behind the push remote.
-    (( VCS_STATUS_PUSH_COMMITS_BEHIND )) && total_changes+=" ${clean}⇠${VCS_STATUS_PUSH_COMMITS_BEHIND}"
-    (( VCS_STATUS_PUSH_COMMITS_AHEAD && !VCS_STATUS_PUSH_COMMITS_BEHIND )) && total_changes+=" "
-    # ⇢42 if ahead of the push remote; no leading space if also behind: ⇠42⇢42.
-    (( VCS_STATUS_PUSH_COMMITS_AHEAD  )) && total_changes+="${clean}⇢${VCS_STATUS_PUSH_COMMITS_AHEAD}"
-    # *42 if have stashes.
-    (( VCS_STATUS_STASHES        )) && total_changes+=" ${clean}*${VCS_STATUS_STASHES}"
-    # 'merge' if the repo is in an unusual state.
-    [[ -n $VCS_STATUS_ACTION     ]] && total_changes+=" ${conflicted}${VCS_STATUS_ACTION}"
-    # ~42 if have merge conflicts.
-    (( VCS_STATUS_NUM_CONFLICTED )) && total_changes+=" ${conflicted}~${VCS_STATUS_NUM_CONFLICTED}"
-    # +42 if have staged changes.
-    (( VCS_STATUS_NUM_STAGED     )) && total_changes+=" ${modified}+${VCS_STATUS_NUM_STAGED}"
-    # !42 if have unstaged changes.
-    (( VCS_STATUS_NUM_UNSTAGED   )) && total_changes+=" ${modified}!${VCS_STATUS_NUM_UNSTAGED}"
-    # ?42 if have untracked files. It's really a question mark, your font isn't broken.
-    (( VCS_STATUS_NUM_UNTRACKED  )) && total_changes+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
-    # save cursor, go to _pos, move line down, move line up, write git changes, restore cursor
-    print -Pn -- '\x1B[s\x1B[${_pos}H\x1B[B\x1B[A\x1B[0K${total_changes}%f\x1B[u'
 }
 
 # taken from Sindre Sorhus
@@ -104,71 +54,109 @@ check_cmd_exec_time() {
     }
 }
 
-typeset -gA __last_checks
-typeset -gA __git_fetch_pwds
+write_git_status() {
+    emulate -L zsh
+
+    if [[ -e /proc/${_git_fetch_pwds[${VCS_STATUS_WORKDIR:-0}]} ]]; then
+        local      branch='%6F'   # cyan foreground
+    else
+        if [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_TIMEOUT:-60} ]]; then
+            local      branch='%6F'   # cyan foreground
+        else
+            local      branch='%2F'   # green foreground
+        fi
+    fi
+
+    local      clean='%6F'   # cyan foreground
+    local   modified='%3F'  # yellow foreground
+    local  untracked='%12F'   # blue foreground
+    local conflicted='%2F'  # red foreground
+
+    local p
+
+    local where  # branch name, tag or commit
+    if [[ -n $VCS_STATUS_LOCAL_BRANCH ]]; then
+        where=$VCS_STATUS_LOCAL_BRANCH
+    elif [[ -n $VCS_STATUS_TAG ]]; then
+        p+='%f#'
+        where=$VCS_STATUS_TAG
+    else
+        p+='%f@'
+        where=${VCS_STATUS_COMMIT[1,8]}
+    fi
+
+    (( $#where > 32 )) && where[13,-13]="…"  # truncate long branch names and tags
+    p+="${branch}${where//\%/%%}"             # escape %
+
+    # ⇣42 if behind the remote.
+    (( VCS_STATUS_COMMITS_BEHIND )) && p+=" ${clean}⇣${VCS_STATUS_COMMITS_BEHIND}"
+    # ⇡42 if ahead of the remote; no leading space if also behind the remote: ⇣42⇡42.
+    (( VCS_STATUS_COMMITS_AHEAD && !VCS_STATUS_COMMITS_BEHIND )) && p+=" "
+    (( VCS_STATUS_COMMITS_AHEAD  )) && p+="${clean}⇡${VCS_STATUS_COMMITS_AHEAD}"
+    # ⇠42 if behind the push remote.
+    (( VCS_STATUS_PUSH_COMMITS_BEHIND )) && p+=" ${clean}⇠${VCS_STATUS_PUSH_COMMITS_BEHIND}"
+    (( VCS_STATUS_PUSH_COMMITS_AHEAD && !VCS_STATUS_PUSH_COMMITS_BEHIND )) && p+=" "
+    # ⇢42 if ahead of the push remote; no leading space if also behind: ⇠42⇢42.
+    (( VCS_STATUS_PUSH_COMMITS_AHEAD  )) && p+="${clean}⇢${VCS_STATUS_PUSH_COMMITS_AHEAD}"
+    # *42 if have stashes.
+    (( VCS_STATUS_STASHES        )) && p+=" ${clean}*${VCS_STATUS_STASHES}"
+    # 'merge' if the repo is in an unusual state.
+    [[ -n $VCS_STATUS_ACTION     ]] && p+=" ${conflicted}${VCS_STATUS_ACTION}"
+    # ~42 if have merge conflicts.
+    (( VCS_STATUS_NUM_CONFLICTED )) && p+=" ${conflicted}~${VCS_STATUS_NUM_CONFLICTED}"
+    # +42 if have staged changes.
+    (( VCS_STATUS_NUM_STAGED     )) && p+=" ${modified}+${VCS_STATUS_NUM_STAGED}"
+    # !42 if have unstaged changes.
+    (( VCS_STATUS_NUM_UNSTAGED   )) && p+=" ${modified}!${VCS_STATUS_NUM_UNSTAGED}"
+    # ?42 if have untracked files. It's really a question mark, your font isn't broken.
+    (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
+
+    print -Pn -- '\x1B[s\x1B[${_pos}H\x1B[B\x1B[A\x1B[0K ${p}%f\x1B[u'
+}
+
 typeset -g _pos
+typeset -g _wait_for_git_fetch_pid
+typeset -gA _last_checks
+typeset -gA _git_fetch_pwds
+
+update_git_status() {
+    [[ $VCS_STATUS_RESULT == 'ok-async' ]] || return 0
+    write_git_status
+    [[ $__UPDATE_GIT == true ]] || return 0 # env var to not fetch remote
+
+    if [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_TIMEOUT:-60} ]]; then
+        _last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
+        env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=59 -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &!
+        _git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
+    fi
+
+    # existing pid means we are still waiting for git process to finish
+    if [[ -e "/proc/${_git_fetch_pwds[${VCS_STATUS_WORKDIR}]:-0}" ]]; then
+        wait_for_git_fetch &!
+        _wait_for_git_fetch_pid="$!"
+    fi
+}
+
+update_git_status_wrapper() {
+    gitstatus_query -t -0 -c update_git_status 'MY'
+}
+
 preprompt() {
-    local __git_branch _n __is_read_only_dir
+    local _n __is_read_only_dir
     check_cmd_exec_time
     unset cmd_exec_timestamp
     [ ! -w "$PWD" ] && __is_read_only_dir="${READ_ONLY_ICON:-RO} "
-    gitstatus_update_branch_only
-    if [[ ${VCS_STATUS_WORKDIR} ]]; then
-        print -P -- '\x1b[?25l%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}${__git_branch}%f\x1b[6n\x1b[?25h'
-        read -s -d\[ _n           # discard first part
-        read -s -d R] _pos < $TTY # store the position
-
-        gitstatus_update_changes_only &!
-
-        if [[ $__UPDATE_GIT != true ]]; then
-            return
-        fi
-
-        if [[ $(($EPOCHSECONDS - ${__last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_TIMEOUT:-60} ]]; then
-            __last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
-            env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=59 -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &!
-            __git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
-        fi
-
-        if [[ $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [[ -e "/proc/${__git_fetch_pwds[${VCS_STATUS_WORKDIR}]}" ]]; then
-            if [[ -z $pending_git_status_pid ]]; then
-                write_git_status &!
-                pending_git_status_pid="$!"
-            fi
-        else
-            unset __git_fetch_pwds[${VCS_STATUS_WORKDIR}]
-        fi
-    else
-        print -P -- '\x1b[?25l%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}%f\x1b[?25h'
-    fi
+    print -P -- '\x1b[?25l%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}\x1b[6n\x1b[?25h'
+    read -s -d\[ _n           # discard first part
+    read -s -d R] _pos < $TTY # store the position
+    gitstatus_query -t -0 -c update_git_status 'MY'
 }
 
-update_git_status() {
-    if [[ ${VCS_STATUS_WORKDIR} ]]; then
-        gitstatus_update_changes_only &!
-        if [[ $__UPDATE_GIT == true ]]; then
-            if [[ $(($EPOCHSECONDS - ${__last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_TIMEOUT:-60} ]]; then
-                __last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
-                env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=59 -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &!
-                __git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
-            fi
-            if [[ $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [[ -e "/proc/${__git_fetch_pwds[${VCS_STATUS_WORKDIR}]}" ]]; then
-                if [[ -z $pending_git_status_pid ]]; then
-                    write_git_status &!
-                    pending_git_status_pid="$!"
-                fi
-            else
-                unset __git_fetch_pwds[${VCS_STATUS_WORKDIR}]
-            fi
-        fi
-    fi
-}
-
-write_git_status() {
-    while [[ -e /proc/${__git_fetch_pwds[${VCS_STATUS_WORKDIR}]} ]]; do
+wait_for_git_fetch() {
+    while [[ -e /proc/${_git_fetch_pwds[${VCS_STATUS_WORKDIR}]} ]]; do
         sleep 0.5
     done
-    gitstatus_update_changes_only
+    gitstatus_query -t -0 -c write_git_status 'MY'
 }
 
 # sets prompt. PROMPT has issues with multiline prompts, see
