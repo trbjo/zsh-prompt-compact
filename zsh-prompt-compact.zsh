@@ -9,7 +9,7 @@ function set_termtitle_precmd() {
     print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a'
 }
 
-function xterm_title_preexec() {
+function control_git_sideeffects_preexec() {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
     if [[ ! -z ${VCS_STATUS_WORKDIR} ]]; then
         if [[ $__git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
@@ -181,7 +181,7 @@ gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 
 # On every prompt, fetch git status and set GITSTATUS_PROMPT.
 autoload -Uz add-zsh-hook
-add-zsh-hook preexec xterm_title_preexec
+add-zsh-hook preexec control_git_sideeffects_preexec
 [[ -z $PROHIBIT_TERM_TITLE ]] && add-zsh-hook preexec set_termtitle_preexec
 [[ -z $PROHIBIT_TERM_TITLE ]] && add-zsh-hook precmd set_termtitle_precmd
 [ $SSH_TTY ] && _ssh="%B[%b%m%B]%b " m="%m: "
