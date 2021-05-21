@@ -11,18 +11,9 @@ function set_termtitle_precmd() {
 
 function control_git_sideeffects_preexec() {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
-    if [[ ! -z ${VCS_STATUS_WORKDIR} ]]; then
-
-        if [[ $_git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
-            kill $_git_fetch_pwds[${VCS_STATUS_WORKDIR}] > /dev/null 2>&1
-            unset _git_fetch_pwds[${VCS_STATUS_WORKDIR}]
-        fi
-
-        if [[ $_wait_for_git_fetch_pid ]]; then
-            kill $_wait_for_git_fetch_pid > /dev/null 2>&1
-            unset _wait_for_git_fetch_pid
-        fi
-
+    if [[ ${VCS_STATUS_WORKDIR} ]] && [[ $_git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
+        kill $_git_fetch_pwds[${VCS_STATUS_WORKDIR}] > /dev/null 2>&1
+        unset _git_fetch_pwds[${VCS_STATUS_WORKDIR}]
     fi
 }
 
@@ -54,17 +45,17 @@ check_cmd_exec_time() {
     }
 }
 
+write_git_status_green() {
+    write_git_status green
+}
+
 write_git_status() {
     emulate -L zsh
 
-    if [[ -e /proc/${_git_fetch_pwds[${VCS_STATUS_WORKDIR:-0}]} ]]; then
-        local      branch='%6F'   # cyan foreground
-    else
-        if [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_TIMEOUT:-60} ]]; then
-            local      branch='%6F'   # cyan foreground
-        else
+    if [[ $1 == "green" ]]; then
             local      branch='%2F'   # green foreground
-        fi
+    else
+        local      branch='%6F'   # cyan foreground
     fi
 
     local      clean='%6F'   # cyan foreground
@@ -115,25 +106,24 @@ write_git_status() {
 }
 
 typeset -g _pos
-typeset -g _wait_for_git_fetch_pid
 typeset -gA _last_checks
 typeset -gA _git_fetch_pwds
+
+GIT_FETCH_RESULT_VALID_FOR=${GIT_FETCH_RESULT_VALID_FOR:-60}
+GIT_CONNECT_TIMEOUT=$((GIT_FETCH_RESULT_VALID_FOR -1))
+
+git_fetch() {
+    env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=$GIT_CONNECT_TIMEOUT -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 && kill -12 $?
+}
+
 
 update_git_status() {
     [[ $VCS_STATUS_RESULT == 'ok-async' ]] || return 0
     write_git_status
-    [[ $__UPDATE_GIT == true ]] || return 0 # env var to not fetch remote
-
-    if [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_TIMEOUT:-60} ]]; then
+    if [[ $GIT_FETCH_REMOTE == true ]] && [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_RESULT_VALID_FOR} ]]; then
         _last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
-        env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=59 -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &!
+        git_fetch &!
         _git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
-    fi
-
-    # existing pid means we are still waiting for git process to finish
-    if [[ -e "/proc/${_git_fetch_pwds[${VCS_STATUS_WORKDIR}]:-0}" ]] && [[ -z $_wait_for_git_fetch_pid ]]; then
-        wait_for_git_fetch &!
-        _wait_for_git_fetch_pid="$!"
     fi
 }
 
@@ -142,21 +132,14 @@ update_git_status_wrapper() {
 }
 
 preprompt() {
-    local _n __is_read_only_dir
     check_cmd_exec_time
     unset cmd_exec_timestamp
+    local _n __is_read_only_dir
     [ ! -w "$PWD" ] && __is_read_only_dir="${READ_ONLY_ICON:-RO} "
     print -P -- '\x1b[?25l%6F${__is_read_only_dir}%{\e[3m%}%4F%~%{\e[0m%}%5F${exec_time}\x1b[6n\x1b[?25h'
     read -s -d\[ _n           # discard first part
     read -s -d R] _pos < $TTY # store the position
     gitstatus_query -t -0 -c update_git_status 'MY'
-}
-
-wait_for_git_fetch() {
-    while [[ -e /proc/${_git_fetch_pwds[${VCS_STATUS_WORKDIR}]} ]]; do
-        sleep 0.5
-    done
-    gitstatus_query -t -0 -c write_git_status 'MY'
 }
 
 # sets prompt. PROMPT has issues with multiline prompts, see
@@ -167,7 +150,6 @@ wait_for_git_fetch() {
 # enable staged, unstaged, conflicted and untracked counters.
 gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 
-# On every prompt, fetch git status and set GITSTATUS_PROMPT.
 autoload -Uz add-zsh-hook
 add-zsh-hook preexec control_git_sideeffects_preexec
 [[ -z $PROHIBIT_TERM_TITLE ]] && add-zsh-hook preexec set_termtitle_preexec
