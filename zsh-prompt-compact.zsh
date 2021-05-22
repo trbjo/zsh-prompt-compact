@@ -11,9 +11,15 @@ function set_termtitle_precmd() {
 
 function control_git_sideeffects_preexec() {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
-    if [[ ${VCS_STATUS_WORKDIR} ]] && [[ $_git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
-        kill $_git_fetch_pwds[${VCS_STATUS_WORKDIR}] > /dev/null 2>&1
-        unset _git_fetch_pwds[${VCS_STATUS_WORKDIR}]
+    if [[ ${VCS_STATUS_WORKDIR} ]] && [[ $_git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]]; then
+        if [[ -e "/proc/$_git_fetch_pwds[${VCS_STATUS_WORKDIR}]" ]]; then
+            if [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
+                kill $_git_fetch_pwds[${VCS_STATUS_WORKDIR}]
+                unset _git_fetch_pwds[${VCS_STATUS_WORKDIR}]
+            fi
+        else
+            unset _git_fetch_pwds[${VCS_STATUS_WORKDIR}]
+        fi
     fi
 }
 
@@ -46,14 +52,16 @@ check_cmd_exec_time() {
 }
 
 write_git_status_green() {
-    write_git_status green
+    _repo_up_to_date[$VCS_STATUS_WORKDIR]=true
+    [[ "$VCS_STATUS_WORKDIR" == $PWD  ]] || return 0
+    write_git_status
 }
 
 write_git_status() {
     emulate -L zsh
 
-    if [[ $1 == "green" ]]; then
-            local      branch='%2F'   # green foreground
+    if [[ $_repo_up_to_date[$VCS_STATUS_WORKDIR] == true ]]; then
+        local      branch='%2F'   # green foreground
     else
         local      branch='%6F'   # cyan foreground
     fi
@@ -108,23 +116,25 @@ write_git_status() {
 typeset -g _pos
 typeset -gA _last_checks
 typeset -gA _git_fetch_pwds
+typeset -gA _repo_up_to_date
 
 GIT_FETCH_RESULT_VALID_FOR=${GIT_FETCH_RESULT_VALID_FOR:-60}
 GIT_CONNECT_TIMEOUT=$((GIT_FETCH_RESULT_VALID_FOR -1))
 
 git_fetch() {
-    env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=$GIT_CONNECT_TIMEOUT -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 && kill -12 $?
+    env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=$GIT_CONNECT_TIMEOUT -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &&\
+    gitstatus_query -t -0 -c write_git_status_green "MY"
 }
-
 
 update_git_status() {
     [[ $VCS_STATUS_RESULT == 'ok-async' ]] || return 0
+    [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_RESULT_VALID_FOR} ]] && _repo_up_to_date[$VCS_STATUS_WORKDIR]=false
     write_git_status
-    if [[ $GIT_FETCH_REMOTE == true ]] && [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_RESULT_VALID_FOR} ]]; then
-        _last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
-        git_fetch &!
-        _git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
-    fi
+    [[ $GIT_FETCH_REMOTE == true ]] || return 0
+    [[ $_repo_up_to_date[$VCS_STATUS_WORKDIR] == false ]] || return 0
+    _last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
+    git_fetch &!
+    _git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
 }
 
 update_git_status_wrapper() {
