@@ -154,10 +154,9 @@ autoload -Uz add-zsh-hook
 add-zsh-hook preexec control_git_sideeffects_preexec
 [[ -z $PROHIBIT_TERM_TITLE ]] && add-zsh-hook preexec set_termtitle_preexec
 [[ -z $PROHIBIT_TERM_TITLE ]] && add-zsh-hook precmd set_termtitle_precmd
-[ $SSH_TTY ] && _ssh="%B[%b%m%B]%b " m="%m: "
 add-zsh-hook precmd preprompt
 
 # Enable/disable the right prompt options.
 setopt no_prompt_bang prompt_percent prompt_subst
-
-PROMPT='${_ssh}%F{%(?.none.1)}%%%f '     # %/# (normal/root); green/red (ok/error)
+[ $SSH_TTY ] && PROMPT+="%f%B[%b%m%B]%b " m="%m: "
+PROMPT+='%(?.$.%F{red}🞮%f) '
