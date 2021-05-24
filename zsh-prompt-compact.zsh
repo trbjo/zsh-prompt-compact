@@ -16,7 +16,7 @@ function control_git_sideeffects_preexec() {
     && [[ $_git_fetch_pwds[${VCS_STATUS_WORKDIR}] != 0 ]]\
     && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]
     then
-        kill  $_git_fetch_pwds[${VCS_STATUS_WORKDIR}]
+        kill -SIGTERM -- -$_git_fetch_pwds[${VCS_STATUS_WORKDIR}]
         _git_fetch_pwds[${VCS_STATUS_WORKDIR}]=0
     fi
 }
