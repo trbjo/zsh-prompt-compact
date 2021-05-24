@@ -128,13 +128,16 @@ git_fetch() {
 
 update_git_status() {
     [[ $VCS_STATUS_RESULT == 'ok-async' ]] || return 0
-    [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_RESULT_VALID_FOR} ]] && _repo_up_to_date[$VCS_STATUS_WORKDIR]=false
+    if [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_RESULT_VALID_FOR} ]]; then
+        _repo_up_to_date[$VCS_STATUS_WORKDIR]=false
+    fi
     write_git_status
     [[ $GIT_FETCH_REMOTE == true ]] || return 0
-    [[ $_repo_up_to_date[$VCS_STATUS_WORKDIR] == false ]] || return 0
-    _last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
-    git_fetch &!
-    _git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
+    if [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_RESULT_VALID_FOR} ]]; then
+        _last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
+        git_fetch &!
+        _git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
+    fi
 }
 
 update_git_status_wrapper() {
