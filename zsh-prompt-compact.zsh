@@ -11,7 +11,11 @@ function set_termtitle_precmd() {
 
 function control_git_sideeffects_preexec() {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
-    if [[ ${VCS_STATUS_WORKDIR} ]] && [[ $_git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]] && [[ $_git_fetch_pwds[${VCS_STATUS_WORKDIR}] != 0 ]] && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
+    if [[ ${VCS_STATUS_WORKDIR} ]]\
+    && [[ $_git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]]\
+    && [[ $_git_fetch_pwds[${VCS_STATUS_WORKDIR}] != 0 ]]\
+    && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]
+    then
         kill  $_git_fetch_pwds[${VCS_STATUS_WORKDIR}]
         _git_fetch_pwds[${VCS_STATUS_WORKDIR}]=0
     fi
