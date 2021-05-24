@@ -123,7 +123,8 @@ GIT_CONNECT_TIMEOUT=$((GIT_FETCH_RESULT_VALID_FOR -1))
 
 git_fetch() {
     env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=$GIT_CONNECT_TIMEOUT -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &&\
-    gitstatus_query -t -0 -c write_git_status_green "MY"
+    gitstatus_query -t -0 -c write_git_status_green "MY" ||\
+    _git_fetch_pwds[${VCS_STATUS_WORKDIR}]=0
 }
 
 update_git_status() {
