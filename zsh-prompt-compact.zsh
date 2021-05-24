@@ -11,14 +11,10 @@ function set_termtitle_precmd() {
 
 function control_git_sideeffects_preexec() {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
-    if [[ ${VCS_STATUS_WORKDIR} ]] && [[ $_git_fetch_pwds[${VCS_STATUS_WORKDIR}] ]]; then
-        if [[ -e "/proc/$_git_fetch_pwds[${VCS_STATUS_WORKDIR}]" ]]; then
-            if [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
-                kill $_git_fetch_pwds[${VCS_STATUS_WORKDIR}]
-                unset _git_fetch_pwds[${VCS_STATUS_WORKDIR}]
-            fi
-        else
-            unset _git_fetch_pwds[${VCS_STATUS_WORKDIR}]
+    if [[ ${VCS_STATUS_WORKDIR} ]] && [[ $_git_fetch_pwds[${VCS_STATUS_WORKDIR}] != 0 ]]; then
+        if [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]; then
+            kill -SIGTERM -- -$_git_fetch_pwds[${VCS_STATUS_WORKDIR}]
+            _git_fetch_pwds[${VCS_STATUS_WORKDIR}]=0
         fi
     fi
 }
@@ -53,6 +49,7 @@ check_cmd_exec_time() {
 
 write_git_status_green() {
     _repo_up_to_date[$VCS_STATUS_WORKDIR]=true
+    _git_fetch_pwds[${VCS_STATUS_WORKDIR}]=0
     [[ "$VCS_STATUS_WORKDIR" == $PWD  ]] || return 0
     write_git_status
 }
