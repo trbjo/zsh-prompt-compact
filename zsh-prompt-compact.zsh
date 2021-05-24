@@ -107,7 +107,7 @@ write_git_status() {
     # ?42 if have untracked files. It's really a question mark, your font isn't broken.
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
-    print -Pn -- '\x1B[s\x1B[${_pos}H\x1B[B\x1B[A\x1B[0K ${p}%f\x1B[u'
+    print -Pn -- '\x1B[s\x1B[F\x1B[${_pos##*;}C\x1B[0K${p}%f\x1B[u'
 }
 
 typeset -g _pos
