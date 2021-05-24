@@ -118,6 +118,7 @@ typeset -gA _git_fetch_pwds
 typeset -gA _repo_up_to_date
 
 GIT_FETCH_RESULT_VALID_FOR=${GIT_FETCH_RESULT_VALID_FOR:-60}
+(( $GIT_FETCH_RESULT_VALID_FOR < 2 )) && GIT_FETCH_RESULT_VALID_FOR=2
 GIT_CONNECT_TIMEOUT=$((GIT_FETCH_RESULT_VALID_FOR -1))
 
 git_fetch() {
