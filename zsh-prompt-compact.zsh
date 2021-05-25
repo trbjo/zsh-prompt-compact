@@ -117,7 +117,7 @@ typeset -gA _repo_up_to_date
 GIT_FETCH_RESULT_VALID_FOR=${GIT_FETCH_RESULT_VALID_FOR:-60}
 (( $GIT_FETCH_RESULT_VALID_FOR < 2 )) && GIT_FETCH_RESULT_VALID_FOR=2
 GIT_CONNECT_TIMEOUT=$((GIT_FETCH_RESULT_VALID_FOR -1))
-READ_ONLY_ICON=${READ_ONLY_ICON:-RO}
+READ_ONLY_ICON="${READ_ONLY_ICON:-RO} "
 
 git_fetch() {
     env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=$GIT_CONNECT_TIMEOUT -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &&\
@@ -145,7 +145,7 @@ update_git_status_wrapper() {
 preprompt() {
     check_cmd_exec_time
     unset cmd_exec_timestamp _is_read_only_dir
-    [ ! -w "$PWD" ] && _is_read_only_dir="${READ_ONLY_ICON} "
+    [ ! -w "$PWD" ] && _is_read_only_dir="${READ_ONLY_ICON}"
     gitstatus_query -t -0 -c update_git_status 'MY'
 }
 
