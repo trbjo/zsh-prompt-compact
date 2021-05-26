@@ -169,5 +169,5 @@ PROMPT='${_is_read_only_dir}'
 PROMPT+=$'%4F\x1b[3m%~\e[0m'
 PROMPT+='%5F${exec_time}%f'
 PROMPT+=$'\n'
-[ $SSH_TTY ] && PROMPT+="%f%B[%b%m%B]%b " m="%m: "
+[ $SSH_TTY ] && PROMPT+="%B[%b%m%B]%b " m="%m: "
 PROMPT+=$'%(?.$.%F{red}🞮%f) '
