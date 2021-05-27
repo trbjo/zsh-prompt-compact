@@ -121,15 +121,14 @@ READ_ONLY_ICON="${READ_ONLY_ICON:-RO} "
 
 update_git_status() {
     [[ $VCS_STATUS_RESULT == 'ok-async' ]] || return 0
-    [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_RESULT_VALID_FOR} ]] && _repo_up_to_date[$VCS_STATUS_WORKDIR]=false
+    [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_RESULT_VALID_FOR} ]] && _repo_up_to_date[$VCS_STATUS_WORKDIR]=false local out_of_date=1
     write_git_status
     [[ $GIT_FETCH_REMOTE == true ]] || return 0
-    if [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_RESULT_VALID_FOR} ]]; then
-        _last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
-        { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=$GIT_CONNECT_TIMEOUT -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &&\
-            gitstatus_query -t -0 -c write_git_status_green "MY" } &!
-        _git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
-    fi
+    [[ $out_of_date ]] || return 0
+    _last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
+    { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=$GIT_CONNECT_TIMEOUT -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &&\
+    gitstatus_query -t -0 -c write_git_status_green "MY" } &!
+    _git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
 }
 
 update_git_status_wrapper() {
