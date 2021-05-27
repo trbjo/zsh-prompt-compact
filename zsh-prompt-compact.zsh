@@ -11,7 +11,7 @@ function set_termtitle_precmd() {
 
 function control_git_sideeffects_preexec() {
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
-    if [[ ${_git_fetch_pwds[${VCS_STATUS_WORKDIR}]:-1} != 0 ]]\
+    if [[ ${_git_fetch_pwds[${VCS_STATUS_WORKDIR}]:-0} != 0 ]]\
     && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]
     then
         kill -SIGTERM -- -$_git_fetch_pwds[${VCS_STATUS_WORKDIR}] 2> /dev/null
@@ -119,11 +119,6 @@ GIT_FETCH_RESULT_VALID_FOR=${GIT_FETCH_RESULT_VALID_FOR:-60}
 GIT_CONNECT_TIMEOUT=$((GIT_FETCH_RESULT_VALID_FOR -1))
 READ_ONLY_ICON="${READ_ONLY_ICON:-RO} "
 
-git_fetch() {
-    env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=$GIT_CONNECT_TIMEOUT -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &&\
-    gitstatus_query -t -0 -c write_git_status_green "MY"
-}
-
 update_git_status() {
     [[ $VCS_STATUS_RESULT == 'ok-async' ]] || return 0
     if [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_RESULT_VALID_FOR} ]]; then
@@ -133,7 +128,8 @@ update_git_status() {
     [[ $GIT_FETCH_REMOTE == true ]] || return 0
     if [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_RESULT_VALID_FOR} ]]; then
         _last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
-        git_fetch &!
+        { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=$GIT_CONNECT_TIMEOUT -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &&\
+            gitstatus_query -t -0 -c write_git_status_green "MY" } &!
         _git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
     fi
 }
