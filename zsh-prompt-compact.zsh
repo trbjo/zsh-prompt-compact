@@ -142,9 +142,6 @@ preprompt() {
     gitstatus_query -t -0 -c update_git_status 'MY'
 }
 
-# sets prompt. PROMPT has issues with multiline prompts, see
-# https://superuser.com/questions/382503/how-can-i-put-a-newline-in-my-zsh-prompt-without-causing-terminal-redraw-issues
-
 # Start gitstatusd instance with name "MY". The same name is passed to
 # gitstatus_query in gitstatus_update_changes_only. The flags with -1 as values
 # enable staged, unstaged, conflicted and untracked counters.
