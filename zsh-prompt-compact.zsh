@@ -47,7 +47,7 @@ check_cmd_exec_time() {
     }
 }
 
-write_git_status_green() {
+write_git_status_after_fetch() {
     _repo_up_to_date[$VCS_STATUS_WORKDIR]=true
     _git_fetch_pwds[${VCS_STATUS_WORKDIR}]=0
     [[ "$VCS_STATUS_WORKDIR" == $PWD  ]] || return 0
@@ -127,7 +127,7 @@ update_git_status() {
     [[ $out_of_date ]] || return 0
     _last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
     { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=$GIT_CONNECT_TIMEOUT -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &&\
-    gitstatus_query -t -0 -c write_git_status_green "MY" } &!
+    gitstatus_query -t -0 -c write_git_status_after_fetch "MY" } &!
     _git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
 }
 
