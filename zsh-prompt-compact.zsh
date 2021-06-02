@@ -138,7 +138,7 @@ update_git_status_wrapper() {
 
 preprompt() {
     check_cmd_exec_time
-    unset cmd_exec_timestamp _is_read_only_dir
+    unset cmd_exec_timestamp _is_read_only_dir GITSTATUS
     [ ! -w "$PWD" ] && _is_read_only_dir="${READ_ONLY_ICON}"
     gitstatus_query -t -0 -c update_git_status 'MY'
 }
