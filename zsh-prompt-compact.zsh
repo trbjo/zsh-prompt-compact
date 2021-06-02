@@ -107,6 +107,7 @@ write_git_status() {
     # ?42 if have untracked files. It's really a question mark, your font isn't broken.
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
+    GITSTATUS=$p
     print -Pn -- '\x1B[s\x1B[F\x1B[$(( ${#_is_read_only_dir} + ${#exec_time} + ${#${PWD}/${HOME}/~} ))C\x1B[0K ${p}%f\x1B[u'
 }
 
@@ -158,7 +159,7 @@ setopt no_prompt_bang prompt_percent prompt_subst
 
 PROMPT='${_is_read_only_dir}'
 PROMPT+=$'%4F\x1b[3m%~\e[0m'
-PROMPT+='%5F${exec_time}%f'
+PROMPT+='%5F${exec_time} $GITSTATUS%f'
 PROMPT+=$'\n'
 [ $SSH_TTY ] && PROMPT+="%B[%b%m%B]%b " m="%m: "
 PROMPT+=$'%(?.$.%F{red}🞮%f) '
