@@ -50,7 +50,7 @@ check_cmd_exec_time() {
 write_git_status_after_fetch() {
     _repo_up_to_date[$VCS_STATUS_WORKDIR]=true
     _git_fetch_pwds[${VCS_STATUS_WORKDIR}]=0
-    [[ "$VCS_STATUS_WORKDIR" == $PWD  ]] || return 0
+    [[ "$VCS_STATUS_WORKDIR" == $(git rev-parse --show-toplevel)  ]] || return 0
     write_git_status
 }
 
