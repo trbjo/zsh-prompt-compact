@@ -52,7 +52,7 @@ write_git_status_after_fetch() {
     _git_fetch_pwds[${VCS_STATUS_WORKDIR}]=0
     # $VCS_STATUS_WORKDIR refers to the git dir of the time the call
     # chain was started and might differ from the current git dir
-    [[ "$VCS_STATUS_WORKDIR" == $(git rev-parse --show-toplevel)  ]] || return 0
+    [[ "$VCS_STATUS_WORKDIR" == $(git rev-parse --show-toplevel 2> /dev/null)  ]] || return 0
     write_git_status
 }
 
