@@ -144,7 +144,6 @@ preprompt() {
     [ ! -w "$PWD" ] && _is_read_only_dir="${READ_ONLY_ICON}"
     PROMPT_PYTHON_VIRT_ENV="${VIRTUAL_ENV:+(${VIRTUAL_ENV##/*/}) }"
     gitstatus_query -t -0 -c update_git_status 'MY'
-    [[ -n $PROMPT_PYTHON_VIRT_ENV ]] && MY_PROMPT_PYTHON_VIRT_ENV="%2F%B${PROMPT_PYTHON_VIRT_ENV}%b"
 }
 
 # Start gitstatusd instance with name "MY". The same name is passed to
@@ -165,7 +164,7 @@ setopt no_prompt_bang prompt_percent prompt_subst
 export VIRTUAL_ENV_DISABLE_PROMPT=1
 
 PROMPT='${_is_read_only_dir}'
-PROMPT+=$'${MY_PROMPT_PYTHON_VIRT_ENV}%4F\x1b[3m%~\e[0m'
+PROMPT+=$'${PROMPT_PYTHON_VIRT_ENV:+%2F%B${PROMPT_PYTHON_VIRT_ENV}%b}%4F\x1b[3m%~\e[0m'
 PROMPT+='%5F${exec_time} $GITSTATUS%f'
 PROMPT+=$'\n'
 [ $SSH_TTY ] && PROMPT+="%B[%b%m%B]%b " m="%m: "
