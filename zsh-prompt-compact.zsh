@@ -109,7 +109,7 @@ write_git_status() {
     # ?42 if have untracked files. It's really a question mark, your font isn't broken.
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
-    print -Pn -- '\x1B[s\x1B[F\x1B[$(( ${#_is_read_only_dir} + ${#exec_time} + ${#${PWD}/${HOME}/~} ))C\x1B[0K ${p}\x1B[u'
+    print -Pn -- '\x1B[s\x1B[F\x1B[$(( ${#${VIRTUAL_ENV##/*/}} + ${#_is_read_only_dir} + ${#exec_time} + ${#${PWD}/${HOME}/~} ))C\x1B[0K ${p}\x1B[u'
     GITSTATUS=$p
 }
 
