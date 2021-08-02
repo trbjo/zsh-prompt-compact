@@ -143,7 +143,7 @@ preprompt() {
     unset cmd_exec_timestamp _is_read_only_dir GITSTATUS
     [ ! -w "$PWD" ] && _is_read_only_dir="${READ_ONLY_ICON}"
     gitstatus_query -t -0 -c update_git_status 'MY'
-    dir=${${PWD/${HOME}/\~}//\//%F{19}\/%F{cyan}}
+    dir=${${PWD/${HOME}/\~}//\//%F{17}\/%F{cyan}}
 }
 
 # Start gitstatusd instance with name "MY". The same name is passed to
