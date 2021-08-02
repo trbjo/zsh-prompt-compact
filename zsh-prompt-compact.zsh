@@ -143,6 +143,7 @@ preprompt() {
     unset cmd_exec_timestamp _is_read_only_dir GITSTATUS
     [ ! -w "$PWD" ] && _is_read_only_dir="${READ_ONLY_ICON}"
     gitstatus_query -t -0 -c update_git_status 'MY'
+    dir=${${PWD/${HOME}/\~}//\//%F{19}\/%F{cyan}}
 }
 
 # Start gitstatusd instance with name "MY". The same name is passed to
@@ -160,7 +161,7 @@ add-zsh-hook precmd preprompt
 setopt no_prompt_bang prompt_percent prompt_subst
 
 PROMPT='${_is_read_only_dir}'
-PROMPT+=$'%4F\x1b[3m%~\e[0m'
+PROMPT+=$'%4F\x1b[3m$dir\e[0m'
 PROMPT+='%5F${exec_time} $GITSTATUS%f'
 PROMPT+=$'\n'
 [ $SSH_TTY ] && PROMPT+="%B[%b%m%B]%b " m="%m: "
