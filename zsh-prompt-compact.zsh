@@ -138,12 +138,15 @@ update_git_status_wrapper() {
     gitstatus_query -t -0 -c update_git_status 'MY'
 }
 
+
+DIR_SEPARATOR_COLOR=${DIR_SEPARATOR_COLOR:-19}
+DIR_COLOR=${DIR_COLOR:-4}
 preprompt() {
     check_cmd_exec_time
     unset cmd_exec_timestamp _is_read_only_dir GITSTATUS
     [ ! -w "$PWD" ] && _is_read_only_dir="${READ_ONLY_ICON}"
     gitstatus_query -t -0 -c update_git_status 'MY'
-    dir=${${PWD/${HOME}/\~}//\//%F{17}\/%F{cyan}}
+    dir=${${PWD/${HOME}/\~}//\//%F{$DIR_SEPARATOR_COLOR}\/%f%F{$DIR_COLOR}}
 }
 
 # Start gitstatusd instance with name "MY". The same name is passed to
@@ -160,7 +163,7 @@ add-zsh-hook precmd preprompt
 # Enable/disable the right prompt options.
 setopt no_prompt_bang prompt_percent prompt_subst
 
-dir=${${PWD/${HOME}/\~}//\//%F{19}\/%F{cyan}}
+dir=${${PWD/${HOME}/\~}//\//%F{$DIR_SEPARATOR_COLOR}\/%f%F{$DIR_COLOR}}
 PROMPT='${_is_read_only_dir}'
 PROMPT+=$'%4F\x1b[3m$dir\e[0m'
 PROMPT+='%5F${exec_time} $GITSTATUS%f'
