@@ -36,14 +36,14 @@ human_time_to_var() {
     typeset -g "${var}"=" ${human}"
 }
 
-# Stores (into exec_time) the execution
+# Stores (into EXEC_TIME) the execution
 # time of the last command if set threshold was exceeded.
 check_cmd_exec_time() {
     integer elapsed
     (( elapsed = EPOCHSECONDS - ${cmd_exec_timestamp:-$EPOCHSECONDS} ))
-    typeset -g exec_time=
+    typeset -g EXEC_TIME=
     (( elapsed > ${PURE_CMD_MAX_EXEC_TIME:-5} )) && {
-        human_time_to_var $elapsed "exec_time"
+        human_time_to_var $elapsed "EXEC_TIME"
     }
 }
 
@@ -109,8 +109,8 @@ write_git_status() {
     # ?42 if have untracked files. It's really a question mark, your font isn't broken.
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
-    print -Pn -- '\x1B[s\x1B[F\x1B[$(( ${#${VIRTUAL_ENV##/*/}} + ${#_is_read_only_dir} + ${#exec_time} + ${#${PWD}/${HOME}/~} ))C\x1B[0K ${p}\x1B[u'
-    GITSTATUS=$p
+    print -Pn -- '\x1B[s\x1B[F\x1B[$(( ${#${VIRTUAL_ENV##/*/}} + ${#RO_DIR} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~} ))C\x1B[0K ${p}\x1B[u'
+    GITSTATUS=" $p"
 }
 
 typeset -gA _last_checks
@@ -120,7 +120,7 @@ typeset -gA _repo_up_to_date
 GIT_FETCH_RESULT_VALID_FOR=${GIT_FETCH_RESULT_VALID_FOR:-60}
 (( $GIT_FETCH_RESULT_VALID_FOR < 2 )) && GIT_FETCH_RESULT_VALID_FOR=2
 GIT_CONNECT_TIMEOUT=$((GIT_FETCH_RESULT_VALID_FOR -1))
-READ_ONLY_ICON="${READ_ONLY_ICON:-RO} "
+READ_ONLY_ICON="${READ_ONLY_ICON:-RO}"
 
 update_git_status() {
     [[ $VCS_STATUS_RESULT == 'ok-async' ]] || return 0
@@ -140,13 +140,14 @@ update_git_status_wrapper() {
 
 
 DIR_SEPARATOR_COLOR=${DIR_SEPARATOR_COLOR:-19}
+# DIR_SEPARATOR_SYMBOL=${DIR_SEPARATOR_SYMBOL:-|}
 DIR_COLOR=${DIR_COLOR:-4}
 preprompt() {
     check_cmd_exec_time
-    unset cmd_exec_timestamp _is_read_only_dir GITSTATUS
-    [ ! -w "$PWD" ] && _is_read_only_dir="${READ_ONLY_ICON}"
+    unset cmd_exec_timestamp RO_DIR GITSTATUS
+    [ ! -w "$PWD" ] && RO_DIR=" %18F${READ_ONLY_ICON}"
     gitstatus_query -t -0 -c update_git_status 'MY'
-    dir=${${PWD/${HOME}/\~}//\//%F{$DIR_SEPARATOR_COLOR}\/%f%F{$DIR_COLOR}}
+    PROMPT_PWD=%F{$DIR_COLOR}${${PWD/${HOME}/\~}//\//%F{$DIR_SEPARATOR_COLOR}\/%F{$DIR_COLOR}}
 }
 
 # Start gitstatusd instance with name "MY". The same name is passed to
@@ -163,10 +164,7 @@ add-zsh-hook precmd preprompt
 # Enable/disable the right prompt options.
 setopt no_prompt_bang prompt_percent prompt_subst
 
-dir=${${PWD/${HOME}/\~}//\//%F{$DIR_SEPARATOR_COLOR}\/%f%F{$DIR_COLOR}}
-PROMPT='${_is_read_only_dir}'
-PROMPT+=$'%4F\x1b[3m$dir\e[0m'
-PROMPT+='%5F${exec_time} $GITSTATUS%f'
+PROMPT='${PROMPT_PWD}${RO_DIR}%5F${EXEC_TIME}${GITSTATUS}%f'
 PROMPT+=$'\n'
 [ $SSH_TTY ] && PROMPT+="%B[%b%m%B]%b " m="%m: "
 PROMPT+=$'%(?.$.%F{red}🞮%f) '
