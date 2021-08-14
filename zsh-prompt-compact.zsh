@@ -65,9 +65,10 @@ write_git_status() {
         local      branch='%6F'   # cyan foreground
     fi
 
-    local      clean='%6F'   # cyan foreground
+    local      clean='%6F'  # cyan foreground
     local   modified='%3F'  # yellow foreground
-    local  untracked='%12F'   # blue foreground
+    local      added='%10F'  # green foreground
+    local  untracked='%12F' # blue foreground
     local conflicted='%2F'  # red foreground
 
     local p
@@ -103,7 +104,7 @@ write_git_status() {
     # ~42 if have merge conflicts.
     (( VCS_STATUS_NUM_CONFLICTED )) && p+=" ${conflicted}~${VCS_STATUS_NUM_CONFLICTED}"
     # +42 if have staged changes.
-    (( VCS_STATUS_NUM_STAGED     )) && p+=" ${modified}+${VCS_STATUS_NUM_STAGED}"
+    (( VCS_STATUS_NUM_STAGED     )) && p+=" ${added}+${VCS_STATUS_NUM_STAGED}"
     # !42 if have unstaged changes.
     (( VCS_STATUS_NUM_UNSTAGED   )) && p+=" ${modified}!${VCS_STATUS_NUM_UNSTAGED}"
     # ?42 if have untracked files. It's really a question mark, your font isn't broken.
@@ -138,9 +139,7 @@ update_git_status_wrapper() {
     gitstatus_query -t -0 -c update_git_status 'MY'
 }
 
-
-DIR_SEPARATOR_COLOR=${DIR_SEPARATOR_COLOR:-19}
-# DIR_SEPARATOR_SYMBOL=${DIR_SEPARATOR_SYMBOL:-|}
+DIR_SEPARATOR_COLOR=${DIR_SEPARATOR_COLOR:-7}
 DIR_COLOR=${DIR_COLOR:-4}
 preprompt() {
     check_cmd_exec_time
@@ -164,7 +163,8 @@ add-zsh-hook precmd preprompt
 # Enable/disable the right prompt options.
 setopt no_prompt_bang prompt_percent prompt_subst
 
-PROMPT='${PROMPT_PWD}${RO_DIR}%5F${EXEC_TIME}${GITSTATUS}%f'
+PROMPT=$'\x1b[3m${PROMPT_PWD}\e[0m'
+PROMPT+='${RO_DIR}%5F${EXEC_TIME}${GITSTATUS}%f'
 PROMPT+=$'\n'
 [ $SSH_TTY ] && PROMPT+="%B[%b%m%B]%b " m="%m: "
 PROMPT+=$'%(?.$.%F{red}🞮%f) '
