@@ -65,10 +65,10 @@ write_git_status() {
         local      branch='%6F'   # cyan foreground
     fi
 
-    local      clean='%6F'  # cyan foreground
+    local      clean='%4F'  # cyan foreground
     local   modified='%3F'  # yellow foreground
     local      added='%10F'  # green foreground
-    local  untracked='%12F' # blue foreground
+    local  untracked='%18F' # grey foreground
     local conflicted='%2F'  # red foreground
 
     local p
@@ -85,32 +85,22 @@ write_git_status() {
     fi
 
     (( $#where > 32 )) && where[13,-13]="…"  # truncate long branch names and tags
-    p+="${branch}${where//\%/%%}"             # escape %
+    p+="%B${branch}${where//\%/%%}"             # escape %
 
-    # ⇣42 if behind the remote.
     (( VCS_STATUS_COMMITS_BEHIND )) && p+=" ${clean}⇣${VCS_STATUS_COMMITS_BEHIND}"
-    # ⇡42 if ahead of the remote; no leading space if also behind the remote: ⇣42⇡42.
     (( VCS_STATUS_COMMITS_AHEAD && !VCS_STATUS_COMMITS_BEHIND )) && p+=" "
     (( VCS_STATUS_COMMITS_AHEAD  )) && p+="${clean}⇡${VCS_STATUS_COMMITS_AHEAD}"
-    # ⇠42 if behind the push remote.
     (( VCS_STATUS_PUSH_COMMITS_BEHIND )) && p+=" ${clean}⇠${VCS_STATUS_PUSH_COMMITS_BEHIND}"
     (( VCS_STATUS_PUSH_COMMITS_AHEAD && !VCS_STATUS_PUSH_COMMITS_BEHIND )) && p+=" "
-    # ⇢42 if ahead of the push remote; no leading space if also behind: ⇠42⇢42.
     (( VCS_STATUS_PUSH_COMMITS_AHEAD  )) && p+="${clean}⇢${VCS_STATUS_PUSH_COMMITS_AHEAD}"
-    # *42 if have stashes.
     (( VCS_STATUS_STASHES        )) && p+=" ${clean}*${VCS_STATUS_STASHES}"
-    # 'merge' if the repo is in an unusual state.
     [[ -n $VCS_STATUS_ACTION     ]] && p+=" ${conflicted}${VCS_STATUS_ACTION}"
-    # ~42 if have merge conflicts.
     (( VCS_STATUS_NUM_CONFLICTED )) && p+=" ${conflicted}~${VCS_STATUS_NUM_CONFLICTED}"
-    # +42 if have staged changes.
     (( VCS_STATUS_NUM_STAGED     )) && p+=" ${added}+${VCS_STATUS_NUM_STAGED}"
-    # !42 if have unstaged changes.
     (( VCS_STATUS_NUM_UNSTAGED   )) && p+=" ${modified}!${VCS_STATUS_NUM_UNSTAGED}"
-    # ?42 if have untracked files. It's really a question mark, your font isn't broken.
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
-    print -Pn -- '\x1B[s\x1B[F\x1B[$(( ${#${VIRTUAL_ENV##/*/}} + ${#RO_DIR} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~} ))C\x1B[0K ${p}\x1B[u'
+    print -Pn -- '\x1B[s\x1B[F\x1B[$(( ${#${VIRTUAL_ENV##/*/}} + ${#RO_DIR} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~} ))C\x1B[0K ${p}%b\x1B[u'
     GITSTATUS=" $p"
 }
 
