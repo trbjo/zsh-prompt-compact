@@ -101,7 +101,7 @@ write_git_status() {
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
     print -Pn -- '\x1B[s\x1B[F\x1B[$(( ${#${VIRTUAL_ENV##/*/}} + ${#RO_DIR} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~} ))C\x1B[0K ${p}%b\x1B[u'
-    GITSTATUS=" $p"
+    GITSTATUS=" $p%b"
 }
 
 typeset -gA _last_checks
@@ -115,7 +115,8 @@ READ_ONLY_ICON="${READ_ONLY_ICON:-RO}"
 
 update_git_status() {
     [[ $VCS_STATUS_RESULT == 'ok-async' ]] || return 0
-    [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_RESULT_VALID_FOR} ]] && _repo_up_to_date[$VCS_STATUS_WORKDIR]=false local out_of_date=1
+    [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_RESULT_VALID_FOR} ]] && \
+    _repo_up_to_date[$VCS_STATUS_WORKDIR]=false local out_of_date=1
     write_git_status
     [[ $GIT_FETCH_REMOTE == true ]] || return 0
     [[ $out_of_date ]] || return 0
