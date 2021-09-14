@@ -1,12 +1,78 @@
+    activate() {
+        typeset -aU venvs
+        if [[ "${#@}" -eq 1 ]]; then
+            venvs+="${1%/*}"
+        else
+            for file in ./**/pyvenv.cfg; do
+                if [[ -f "$file" ]]; then
+                    venvs+="${file%/*}"
+                fi
+            done
+        fi
+        if [[ "${#venvs}" -eq 1 ]]; then
+            source "${venvs[@]:0}/bin/activate"
+            _OLD_VIRTUAL_PS1="$PROMPT"
+            export VIRTUAL_ENV_PROMPT="(${VIRTUAL_ENV##/*/}) "
+            export PROMPT="%2F%B$VIRTUAL_ENV_PROMPT%b$PROMPT"
+        elif [[ "${#venvs}" -gt 1 ]]; then
+            print "More than one venv: \x1b[3m${venvs[@]##*/}\e[0m"
+            print "Use \`activate <venv>\` to activate it"
+            return 1
+        elif [[ "${#venvs}" -eq 0 ]]; then
+            print "No venv: \x1b[3m${venvs[@]##*/}\e[0m"
+            return 1
+        fi
+    }
+
+# disable python's built in manipulation of the prompt in favor of our own
+export VIRTUAL_ENV_DISABLE_PROMPT=1
+
 function set_termtitle_preexec() {
     first_arg=${2%% *}
-    if command -v ${first_arg} > /dev/null 2>&1 && [[ ! ${first_arg} =~ ^(_file_opener|_zlua|cd|clear|exa|ls|stat)$ ]]; then
-        print -Pn -- "\e]2;$m%(5~|…/%3~|%~) – "${(q)2}"\a"
+    if command -v ${first_arg} > /dev/null 2>&1 && [[ ! ${first_arg} =~ ^(_file_opener|_zlua|cd|clear|exa|ls|stat|rmdir|mkdir)$ ]]; then
+        comm=${(q)1}
+        # (( $#comm > 30 )) && comm[13,-13]="…"  # truncate long command names
+        # print -Pn -- "\e]2;$m$_short_path – "$comm"\a"
     fi
 }
 
 function set_termtitle_precmd() {
-    print -Pn -- '\e]2;$m %(8~|…/%6~|%~)\a'
+    # we also reset the cursor to bar. Useful if coming from Neovim
+
+    if [[ $? != 0 ]]; then
+        set_global_short_path
+        print -Pn -- '\e]2;$m$_short_path ERR\a\e[6 q'
+    else
+        set_global_short_path
+        print -Pn -- '\e]2;$m$_short_path\a\e[6 q'
+    fi
+}
+
+function set_global_short_path() {
+    typeset -g _short_path
+    typeset -a parts
+
+    if [[ "$PWD" == $HOME* ]]; then
+        _short_path="~"
+        pd="${PWD/${HOME}/}"
+    else
+        _short_path=""
+        pd="$PWD"
+    fi
+
+    length=${pd//\//}
+    parts=("${(@s[/])pd}")
+    num_elems=$(( ${#parts} - 1 ))
+    # we truncate the path when it is longer than 40 chars but always keep at least two dirs
+    while (( ${#length} + ${#parts} > 40 )) && (( $num_elems > 2 )); do
+        parts[$num_elems]="…"
+        printf -v length '%s' "${parts[@]}"
+        num_elems=$(( $num_elems - 1 ))
+    done
+
+    for part in "${parts[@]:1}"; do
+        _short_path+=/"$part"
+    done
 }
 
 function control_git_sideeffects_preexec() {
@@ -100,7 +166,7 @@ write_git_status() {
     (( VCS_STATUS_NUM_UNSTAGED   )) && p+=" ${modified}!${VCS_STATUS_NUM_UNSTAGED}"
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
-    print -Pn -- '\x1B[s\x1B[F\x1B[$(( ${#${VIRTUAL_ENV##/*/}} + ${#RO_DIR} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~} ))C\x1B[0K ${p}%b\x1B[u'
+    print -Pn -- '\x1B[s\x1B[F\x1B[$(( ${VIRTUAL_ENV:+${#VIRTUAL_ENV_PROMPT}} + ${#RO_DIR} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~} ))C\x1B[0K ${p}%b\x1B[u'
     GITSTATUS=" $p%b"
 }
 
@@ -131,7 +197,7 @@ update_git_status_wrapper() {
 }
 
 DIR_SEPARATOR_COLOR=${DIR_SEPARATOR_COLOR:-7}
-DIR_COLOR=${DIR_COLOR:-4}
+DIR_COLOR=${DIR_COLOR:-6}
 preprompt() {
     check_cmd_exec_time
     unset cmd_exec_timestamp RO_DIR GITSTATUS
@@ -154,7 +220,7 @@ add-zsh-hook precmd preprompt
 # Enable/disable the right prompt options.
 setopt no_prompt_bang prompt_percent prompt_subst
 
-PROMPT=$'\x1b[3m${PROMPT_PWD}\e[0m'
+PROMPT=$'${PROMPT_PWD}\e[0m'
 PROMPT+='${RO_DIR}%5F${EXEC_TIME}${GITSTATUS}%f'
 PROMPT+=$'\n'
 [ $SSH_TTY ] && PROMPT+="%B[%b%m%B]%b " m="%m: "
