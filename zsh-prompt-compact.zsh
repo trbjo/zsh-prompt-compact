@@ -1,28 +1,34 @@
-    activate() {
-        typeset -aU venvs
-        if [[ "${#@}" -eq 1 ]]; then
-            venvs+="${1%/*}"
-        else
-            for file in ./**/pyvenv.cfg; do
-                if [[ -f "$file" ]]; then
-                    venvs+="${file%/*}"
-                fi
-            done
-        fi
-        if [[ "${#venvs}" -eq 1 ]]; then
-            source "${venvs[@]:0}/bin/activate"
-            _OLD_VIRTUAL_PS1="$PROMPT"
-            export VIRTUAL_ENV_PROMPT="(${VIRTUAL_ENV##/*/}) "
-            export PROMPT="%2F%B$VIRTUAL_ENV_PROMPT%b$PROMPT"
-        elif [[ "${#venvs}" -gt 1 ]]; then
-            print "More than one venv: \x1b[3m${venvs[@]##*/}\e[0m"
-            print "Use \`activate <venv>\` to activate it"
-            return 1
-        elif [[ "${#venvs}" -eq 0 ]]; then
-            print "No venv: \x1b[3m${venvs[@]##*/}\e[0m"
-            return 1
-        fi
-    }
+activate() {
+
+    if [[ $VIRTUAL_ENV ]]; then
+        print "Deactivate your current environment first"
+        return 1
+    fi
+
+    typeset -aU venvs
+    if [[ "${#@}" -eq 1 ]]; then
+        venvs+="${1%/*}"
+    else
+        for file in ./**/pyvenv.cfg; do
+            if [[ -f "$file" ]]; then
+                venvs+="${file%/*}"
+            fi
+        done
+    fi
+    if [[ "${#venvs}" -eq 1 ]]; then
+        source "${venvs[@]:0}/bin/activate"
+        _OLD_VIRTUAL_PS1="$PROMPT"
+        export VIRTUAL_ENV_PROMPT="(${VIRTUAL_ENV##/*/}) "
+        export PROMPT="%2F%B$VIRTUAL_ENV_PROMPT%b$PROMPT"
+    elif [[ "${#venvs}" -gt 1 ]]; then
+        print "More than one venv: \x1b[3m${venvs[@]##*/}\e[0m"
+        print "Use \`activate <venv>\` to activate it"
+        return 1
+    elif [[ "${#venvs}" -eq 0 ]]; then
+        print "No venv: \x1b[3m${venvs[@]##*/}\e[0m"
+        return 1
+    fi
+}
 
 # disable python's built in manipulation of the prompt in favor of our own
 export VIRTUAL_ENV_DISABLE_PROMPT=1
