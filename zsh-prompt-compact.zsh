@@ -37,8 +37,8 @@ function set_termtitle_preexec() {
     first_arg=${2%% *}
     if command -v ${first_arg} > /dev/null 2>&1 && [[ ! ${first_arg} =~ ^(_file_opener|_zlua|cd|clear|exa|ls|stat|rmdir|mkdir)$ ]]; then
         comm=${(q)1}
-        # (( $#comm > 30 )) && comm[13,-13]="…"  # truncate long command names
-        # print -Pn -- "\e]2;$m$_short_path – "$comm"\a"
+        (( $#comm > 30 )) && comm[13,-13]="…"  # truncate long command names
+        print -Pn -- "\e]2;$m$_short_path – $comm\a"
     fi
 }
 
