@@ -60,7 +60,7 @@ function set_global_short_path() {
 
     if [[ "$PWD" == $HOME* ]]; then
         _short_path="~"
-        pd="${PWD/${HOME}/}"
+        pd="${PWD/#$HOME/}"
     else
         _short_path=""
         pd="$PWD"
@@ -209,7 +209,7 @@ preprompt() {
     unset cmd_exec_timestamp RO_DIR GITSTATUS
     [ ! -w "$PWD" ] && RO_DIR=" %18F${READ_ONLY_ICON}"
     gitstatus_query -t -0 -c update_git_status 'MY'
-    PROMPT_PWD=%F{$DIR_COLOR}${${PWD/${HOME}/\~}//\//%F{$DIR_SEPARATOR_COLOR}\/%F{$DIR_COLOR}}
+    PROMPT_PWD=%F{$DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{$DIR_SEPARATOR_COLOR}\/%F{$DIR_COLOR}}
 }
 
 # Start gitstatusd instance with name "MY". The same name is passed to
