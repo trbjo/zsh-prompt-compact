@@ -43,24 +43,22 @@ function set_termtitle_preexec() {
 }
 
 function set_termtitle_precmd() {
+    [[ $? != 0 ]] && local _err=" ${PROMPT_ERR_ICON}"
     # we also reset the cursor to bar. Useful if coming from Neovim
-
-    if [[ $? != 0 ]]; then
-        set_global_short_path
-        print -Pn -- '\e]2;$m$_short_path ERR\a\e[6 q'
-    else
-        set_global_short_path
-        print -Pn -- '\e]2;$m$_short_path\a\e[6 q'
+    if [[ "$PWD" != "$OLDPWD" ]]; then
+        set_termtitle $_err &!
+    elif [[ $? != 0 ]]; then
+        print -Pn -- "\e]2;$m$_short_path$_err\a"
     fi
 }
 
-function set_global_short_path() {
+function set_termtitle() {
     typeset -g _short_path
     typeset -a parts
 
     if [[ "$PWD" == $HOME* ]]; then
         _short_path="~"
-        pd="${PWD/#$HOME/}"
+        pd="${PWD/#$HOME/~}"
     else
         _short_path=""
         pd="$PWD"
@@ -71,7 +69,18 @@ function set_global_short_path() {
     num_elems=$(( ${#parts} - 1 ))
     # we truncate the path when it is longer than 40 chars but always keep at least two dirs
     while (( ${#length} + ${#parts} > 40 )) && (( $num_elems > 2 )); do
-        parts[$num_elems]="…"
+
+        (( cur_part = ${#parts[$num_elems]} ))
+
+        if (( ${#length} + ${#parts} - 38 > $cur_part )); then
+            parts[$num_elems]="…"
+        else
+            (( too_long = ${#length} + ${#parts} - 40 ))
+            (( we_need_this_left = $cur_part / 2 - $too_long /2 -1 ))
+            (( we_need_this_right = $cur_part - $we_need_this_left ))
+            parts[$num_elems]="${parts[$num_elems]:0:$we_need_this_left}…${parts[$num_elems]:$we_need_this_right}"
+        fi
+
         printf -v length '%s' "${parts[@]}"
         num_elems=$(( $num_elems - 1 ))
     done
@@ -79,6 +88,8 @@ function set_global_short_path() {
     for part in "${parts[@]:1}"; do
         _short_path+=/"$part"
     done
+    print -Pn -- '\e]2;$m$_short_path$1\a\e[6 q'
+
 }
 
 function control_git_sideeffects_preexec() {
@@ -157,7 +168,7 @@ write_git_status() {
     fi
 
     (( $#where > 32 )) && where[13,-13]="…"  # truncate long branch names and tags
-    p+="%B${branch}${where//\%/%%}"             # escape %
+    p+="${branch}${where//\%/%%}"             # escape %
 
     (( VCS_STATUS_COMMITS_BEHIND )) && p+=" ${clean}⇣${VCS_STATUS_COMMITS_BEHIND}"
     (( VCS_STATUS_COMMITS_AHEAD && !VCS_STATUS_COMMITS_BEHIND )) && p+=" "
@@ -172,8 +183,20 @@ write_git_status() {
     (( VCS_STATUS_NUM_UNSTAGED   )) && p+=" ${modified}!${VCS_STATUS_NUM_UNSTAGED}"
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
-    print -Pn -- '\x1B[s\x1B[F\x1B[$(( ${VIRTUAL_ENV:+${#VIRTUAL_ENV_PROMPT}} + ${#RO_DIR} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~} ))C\x1B[0K ${p}%b\x1B[u'
-    GITSTATUS=" $p%b"
+    GITSTATUS_PROMPT_LEN="${(m)#${${p//\%\%/x}//\%(f|<->F)}}"
+    # print $GITSTATUS_PROMPT_LEN
+    (( PROMPT_LENGTH=${VIRTUAL_ENV:+${#VIRTUAL_ENV_PROMPT}} + ${#RO_DIR} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~}))
+    if (( PROMPT_LENGTH + GITSTATUS_PROMPT_LEN  > COLUMNS )); then
+        ((PROMPT_LENGTH= COLUMNS - GITSTATUS_PROMPT_LEN - 1))
+        GITSTATUS=" %B$p%b"
+        print -Pn -- '\x1B[s\x1B[F\x1B[${PROMPT_LENGTH}C\x1B[0K${GITSTATUS}%b\x1B[u'
+        # PROMPT_PWD=""
+    else
+        GITSTATUS=" %B$p%b"
+        print -Pn -- '\x1B[s\x1B[F\x1B[${PROMPT_LENGTH}C\x1B[0K${GITSTATUS}%b\x1B[u'
+
+    fi
+
 }
 
 typeset -gA _last_checks
@@ -219,15 +242,29 @@ gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 
 autoload -Uz add-zsh-hook
 add-zsh-hook preexec control_git_sideeffects_preexec
-[[ -z $PROHIBIT_TERM_TITLE ]] && add-zsh-hook preexec set_termtitle_preexec
-[[ -z $PROHIBIT_TERM_TITLE ]] && add-zsh-hook precmd set_termtitle_precmd
 add-zsh-hook precmd preprompt
+
+[[ -z $PROHIBIT_TERM_TITLE ]] && {
+    add-zsh-hook preexec set_termtitle_preexec
+    add-zsh-hook precmd set_termtitle_precmd
+    set_termtitle
+    print -Pn -- '\e]2;$m$_short_path\a\e[6 q'
+}
+
 
 # Enable/disable the right prompt options.
 setopt no_prompt_bang prompt_percent prompt_subst
 
 PROMPT=$'${PROMPT_PWD}\e[0m'
-PROMPT+='${RO_DIR}%5F${EXEC_TIME}${GITSTATUS}%f'
+PROMPT+='${RO_DIR}%5F${EXEC_TIME}%f'
+PROMPT+='${GITSTATUS:+ $GITSTATUS}%f'      # git status
 PROMPT+=$'\n'
 [ $SSH_TTY ] && PROMPT+="%B[%b%m%B]%b " m="%m: "
-PROMPT+=$'%(?.$.%F{red}🞮%f) '
+PROMPT+=$'%(?.$.%F{red}${PROMPT_ERR_ICON}%f) '
+
+# PROMPT='%9F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f'  # blue current working directory
+# PROMPT+='${GITSTATUS:+ $GITSTATUS}'      # git status
+# PROMPT+=$'\n'                                          # new line
+# PROMPT+='%F{%(?.76.196)}%#%f '                         # %/# (normal/root); green/red (ok/error)
+
+
