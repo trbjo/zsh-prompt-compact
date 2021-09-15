@@ -46,7 +46,8 @@ function set_termtitle_precmd() {
     [[ $? != 0 ]] && local _err=" ${PROMPT_ERR_ICON}"
     # we also reset the cursor to bar. Useful if coming from Neovim
     if [[ "$PWD" != "$OLDPWD" ]]; then
-        set_termtitle $_err &!
+        set_termtitle
+        print -Pn -- '\e]2;$m$_short_path$_err\a\e[6 q'
     elif [[ $? != 0 ]]; then
         print -Pn -- "\e]2;$m$_short_path$_err\a"
     fi
@@ -88,7 +89,6 @@ function set_termtitle() {
     for part in "${parts[@]:1}"; do
         _short_path+=/"$part"
     done
-    print -Pn -- '\e]2;$m$_short_path$1\a\e[6 q'
 
 }
 
@@ -257,7 +257,7 @@ setopt no_prompt_bang prompt_percent prompt_subst
 
 PROMPT=$'${PROMPT_PWD}\e[0m'
 PROMPT+='${RO_DIR}%5F${EXEC_TIME}%f'
-PROMPT+='${GITSTATUS:+ $GITSTATUS}%f'      # git status
+PROMPT+='${GITSTATUS:+$GITSTATUS}%f'      # git status
 PROMPT+=$'\n'
 [ $SSH_TTY ] && PROMPT+="%B[%b%m%B]%b " m="%m: "
 PROMPT+=$'%(?.$.%F{red}${PROMPT_ERR_ICON}%f) '
