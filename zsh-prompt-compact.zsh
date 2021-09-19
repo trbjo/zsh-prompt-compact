@@ -43,17 +43,14 @@ function set_termtitle_preexec() {
 }
 
 function set_termtitle_precmd() {
-    [[ $? != 0 ]] && local _err=" ${PROMPT_ERR_ICON}"
-    # we also reset the cursor to bar. Useful if coming from Neovim
-    if [[ "$PWD" != "$OLDPWD" ]]; then
-        set_termtitle
-        print -Pn -- '\e]2;$m$_short_path$_err\a\e[6 q'
-    elif [[ $? != 0 ]]; then
-        print -Pn -- "\e]2;$m$_short_path$_err\a"
+    if [[ $? != 0 ]]; then
+        print -Pn -- "\e]2;$m${_short_path} ${PROMPT_ERR_ICON}\a"
+    else
+        print -Pn -- "\e]2;$m${_short_path}\a"
     fi
 }
 
-function set_termtitle() {
+function set_termtitle_pwd() {
     typeset -g _short_path
     typeset -a parts
 
@@ -246,12 +243,12 @@ autoload -Uz add-zsh-hook
 add-zsh-hook preexec control_git_sideeffects_preexec
 add-zsh-hook precmd preprompt
 
-[[ -z $PROHIBIT_TERM_TITLE ]] && {
+if [[ -z $PROHIBIT_TERM_TITLE ]]; then
     add-zsh-hook preexec set_termtitle_preexec
     add-zsh-hook precmd set_termtitle_precmd
-    set_termtitle
-    print -Pn -- '\e]2;$m$_short_path\a\e[6 q'
-}
+    add-zsh-hook chpwd set_termtitle_pwd
+    set_termtitle_pwd
+fi
 
 
 # Enable/disable the right prompt options.
