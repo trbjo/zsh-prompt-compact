@@ -206,6 +206,7 @@ GIT_CONNECT_TIMEOUT=$((GIT_FETCH_RESULT_VALID_FOR -1))
 
 READ_ONLY_ICON="${READ_ONLY_ICON:-RO}"
 PROMPT_ERR_ICON="${PROMPT_ERR_ICON:-X}"
+PROMPT_SUCCESS_ICON="${PROMPT_SUCCESS_ICON:-$}"
 
 update_git_status() {
     [[ $VCS_STATUS_RESULT == 'ok-async' ]] || return 0
@@ -259,7 +260,7 @@ PROMPT+='${RO_DIR}%5F${EXEC_TIME}%f'
 PROMPT+='${GITSTATUS:+$GITSTATUS}%f'      # git status
 PROMPT+=$'\n'
 [ $SSH_TTY ] && PROMPT+="%B[%b%m%B]%b " m="%m: "
-PROMPT+=$'%(?.$.%F{red}${PROMPT_ERR_ICON}%f) '
+PROMPT+=$'%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
 
 # PROMPT='%9F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f'  # blue current working directory
 # PROMPT+='${GITSTATUS:+ $GITSTATUS}'      # git status
