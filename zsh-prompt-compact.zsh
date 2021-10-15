@@ -17,9 +17,6 @@ activate() {
     fi
     if [[ "${#venvs}" -eq 1 ]]; then
         source "${venvs[@]:0}/bin/activate"
-        _OLD_VIRTUAL_PS1="$PROMPT"
-        export VIRTUAL_ENV_PROMPT="(${VIRTUAL_ENV##/*/}) "
-        export PROMPT="%2F%B$VIRTUAL_ENV_PROMPT%b$PROMPT"
     elif [[ "${#venvs}" -gt 1 ]]; then
         print "More than one venv: \x1b[3m${venvs[@]##*/}\e[0m"
         print "Use \`activate <venv>\` to activate it"
@@ -182,7 +179,7 @@ write_git_status() {
 
     GITSTATUS_PROMPT_LEN="${(m)#${${p//\%\%/x}//\%(f|<->F)}}"
     # print $GITSTATUS_PROMPT_LEN
-    (( PROMPT_LENGTH=${VIRTUAL_ENV:+${#VIRTUAL_ENV_PROMPT}} + ${#PROMPT_NVM} + ${#RO_DIR} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~}))
+    (( PROMPT_LENGTH=${VIRTUAL_ENV:+(( ${#PROMPT_VIRTUAL_ENV} + 1))} + ${#PROMPT_NVM} + ${#RO_DIR} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~}))
     if (( PROMPT_LENGTH + GITSTATUS_PROMPT_LEN  > COLUMNS )); then
         ((PROMPT_LENGTH= COLUMNS - GITSTATUS_PROMPT_LEN - 1))
         GITSTATUS=" %B$p%b"
@@ -229,11 +226,12 @@ DIR_SEPARATOR_COLOR=${DIR_SEPARATOR_COLOR:-7}
 DIR_COLOR=${DIR_COLOR:-6}
 preprompt() {
     check_cmd_exec_time
-    unset cmd_exec_timestamp RO_DIR GITSTATUS
+    unset cmd_exec_timestamp RO_DIR GITSTATUS PROMPT_NVM PROMPT_VIRTUAL_ENV
     [ ! -w "$PWD" ] && RO_DIR=" %18F${READ_ONLY_ICON}"
     gitstatus_query -t -0 -c update_git_status 'MY'
     PROMPT_PWD=%F{$DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{$DIR_SEPARATOR_COLOR}\/%F{$DIR_COLOR}}
     [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
+    [[ $VIRTUAL_ENV ]] && PROMPT_VIRTUAL_ENV=" 🐍${VIRTUAL_ENV##/*/}"
 }
 
 # Start gitstatusd instance with name "MY". The same name is passed to
@@ -257,7 +255,9 @@ fi
 setopt no_prompt_bang prompt_percent prompt_subst
 
 PROMPT=$'${PROMPT_PWD}\e[0m'
-PROMPT+='${RO_DIR}%5F${EXEC_TIME}%F{yellow}${PROMPT_NVM}%f'
+PROMPT+='${RO_DIR}%5F${EXEC_TIME}'
+PROMPT+='%F{green}${PROMPT_VIRTUAL_ENV}'
+PROMPT+='%F{yellow}${PROMPT_NVM}%f'
 PROMPT+='${GITSTATUS:+$GITSTATUS}%f'      # git status
 PROMPT+=$'\n'
 [ $SSH_TTY ] && PROMPT+="%B[%b%m%B]%b " m="%m: "
