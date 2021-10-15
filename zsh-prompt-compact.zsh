@@ -182,7 +182,7 @@ write_git_status() {
 
     GITSTATUS_PROMPT_LEN="${(m)#${${p//\%\%/x}//\%(f|<->F)}}"
     # print $GITSTATUS_PROMPT_LEN
-    (( PROMPT_LENGTH=${VIRTUAL_ENV:+${#VIRTUAL_ENV_PROMPT}} + ${#RO_DIR} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~}))
+    (( PROMPT_LENGTH=${VIRTUAL_ENV:+${#VIRTUAL_ENV_PROMPT}} + ${#PROMPT_NVM} + ${#RO_DIR} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~}))
     if (( PROMPT_LENGTH + GITSTATUS_PROMPT_LEN  > COLUMNS )); then
         ((PROMPT_LENGTH= COLUMNS - GITSTATUS_PROMPT_LEN - 1))
         GITSTATUS=" %B$p%b"
@@ -233,6 +233,7 @@ preprompt() {
     [ ! -w "$PWD" ] && RO_DIR=" %18F${READ_ONLY_ICON}"
     gitstatus_query -t -0 -c update_git_status 'MY'
     PROMPT_PWD=%F{$DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{$DIR_SEPARATOR_COLOR}\/%F{$DIR_COLOR}}
+    [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
 }
 
 # Start gitstatusd instance with name "MY". The same name is passed to
@@ -257,7 +258,7 @@ setopt no_prompt_bang prompt_percent prompt_subst
 
 PROMPT=$'${PROMPT_PWD}\e[0m'
 PROMPT+='${RO_DIR}%5F${EXEC_TIME}%f'
-PROMPT+='${GITSTATUS:+$GITSTATUS}%f'      # git status
+PROMPT+='${GITSTATUS:+$GITSTATUS}%F{yellow}${PROMPT_NVM}%f'      # git status
 PROMPT+=$'\n'
 [ $SSH_TTY ] && PROMPT+="%B[%b%m%B]%b " m="%m: "
 PROMPT+=$'%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
