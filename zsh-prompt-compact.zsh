@@ -257,8 +257,8 @@ fi
 setopt no_prompt_bang prompt_percent prompt_subst
 
 PROMPT=$'${PROMPT_PWD}\e[0m'
-PROMPT+='${RO_DIR}%5F${EXEC_TIME}%f'
-PROMPT+='${GITSTATUS:+$GITSTATUS}%F{yellow}${PROMPT_NVM}%f'      # git status
+PROMPT+='${RO_DIR}%5F${EXEC_TIME}%F{yellow}${PROMPT_NVM}%f'
+PROMPT+='${GITSTATUS:+$GITSTATUS}%f'      # git status
 PROMPT+=$'\n'
 [ $SSH_TTY ] && PROMPT+="%B[%b%m%B]%b " m="%m: "
 PROMPT+=$'%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
