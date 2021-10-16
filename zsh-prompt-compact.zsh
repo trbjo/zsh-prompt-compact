@@ -254,7 +254,7 @@ fi
 # Enable/disable the right prompt options.
 setopt no_prompt_bang prompt_percent prompt_subst
 
-PROMPT=$'${PROMPT_PWD}\e[0m'
+PROMPT=$'\n${PROMPT_PWD}\e[0m'
 PROMPT+='${RO_DIR}%5F${EXEC_TIME}'
 PROMPT+='%F{green}${PROMPT_VIRTUAL_ENV}'
 PROMPT+='%F{yellow}${PROMPT_NVM}%f'
