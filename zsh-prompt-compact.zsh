@@ -224,14 +224,25 @@ update_git_status_wrapper() {
 
 DIR_SEPARATOR_COLOR=${DIR_SEPARATOR_COLOR:-7}
 DIR_COLOR=${DIR_COLOR:-6}
+[[ $PROMPT_NEWLINE_SEPARATOR != 0 ]] && PROMPT_NEWLINE_SEPARATOR=1 || unset PROMPT_NEWLINE_SEPARATOR
+
 preprompt() {
-    check_cmd_exec_time
-    unset cmd_exec_timestamp RO_DIR GITSTATUS PROMPT_NVM PROMPT_VIRTUAL_ENV
     [ ! -w "$PWD" ] && RO_DIR=" %18F${READ_ONLY_ICON}"
     gitstatus_query -t -0 -c update_git_status 'MY'
     PROMPT_PWD=%F{$DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{$DIR_SEPARATOR_COLOR}\/%F{$DIR_COLOR}}
     [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
     [[ $VIRTUAL_ENV ]] && PROMPT_VIRTUAL_ENV=" 🐍${VIRTUAL_ENV##/*/}"
+
+    preprompt() {
+        check_cmd_exec_time
+        unset cmd_exec_timestamp RO_DIR GITSTATUS PROMPT_NVM PROMPT_VIRTUAL_ENV
+        [ ! -w "$PWD" ] && RO_DIR=" %18F${READ_ONLY_ICON}"
+        gitstatus_query -t -0 -c update_git_status 'MY'
+        PROMPT_PWD=%F{$DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{$DIR_SEPARATOR_COLOR}\/%F{$DIR_COLOR}}
+        [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
+        [[ $VIRTUAL_ENV ]] && PROMPT_VIRTUAL_ENV=" 🐍${VIRTUAL_ENV##/*/}"
+        [[ $PROMPT_NEWLINE_SEPARATOR ]] && print
+    }
 }
 
 # Start gitstatusd instance with name "MY". The same name is passed to
@@ -254,18 +265,11 @@ fi
 # Enable/disable the right prompt options.
 setopt no_prompt_bang prompt_percent prompt_subst
 
-PROMPT=$'\n${PROMPT_PWD}\e[0m'
-PROMPT+='${RO_DIR}%5F${EXEC_TIME}'
-PROMPT+='%F{green}${PROMPT_VIRTUAL_ENV}'
-PROMPT+='%F{yellow}${PROMPT_NVM}%f'
-PROMPT+='${GITSTATUS:+$GITSTATUS}%f'      # git status
+PROMPT=$'${PROMPT_PWD}\e[0m'
+PROMPT+=$'${RO_DIR:+$RO_DIR}${EXEC_TIME:+\x1b[35m$EXEC_TIME}'
+PROMPT+=$'${VIRTUAL_ENV:+\x1b[32m${PROMPT_VIRTUAL_ENV}}'
+PROMPT+=$'${NVM_BIN:+\x1b[33m${PROMPT_NVM}}'
+PROMPT+='${GITSTATUS:+$GITSTATUS}%f'
 PROMPT+=$'\n'
 [ $SSH_TTY ] && PROMPT+="%B[%b%m%B]%b " m="%m: "
-PROMPT+=$'%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
-
-# PROMPT='%9F%$((-GITSTATUS_PROMPT_LEN-1))<…<%~%<<%f'  # blue current working directory
-# PROMPT+='${GITSTATUS:+ $GITSTATUS}'      # git status
-# PROMPT+=$'\n'                                          # new line
-# PROMPT+='%F{%(?.76.196)}%#%f '                         # %/# (normal/root); green/red (ok/error)
-
-
+PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
