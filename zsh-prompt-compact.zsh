@@ -9,12 +9,13 @@ activate() {
     if [[ "${#@}" -eq 1 ]]; then
         venvs+="${1%/*}"
     else
-        for file in ./**/pyvenv.cfg; do
+        for file in ./*/pyvenv.cfg; do
             if [[ -f "$file" ]]; then
                 venvs+="${file%/*}"
             fi
         done
     fi
+
     if [[ "${#venvs}" -eq 1 ]]; then
         source "${venvs[@]:0}/bin/activate"
     elif [[ "${#venvs}" -gt 1 ]]; then
@@ -22,7 +23,7 @@ activate() {
         print "Use \`activate <venv>\` to activate it"
         return 1
     elif [[ "${#venvs}" -eq 0 ]]; then
-        print "No venv: \x1b[3m${venvs[@]##*/}\e[0m"
+        print "No venv found"
         return 1
     fi
 }
