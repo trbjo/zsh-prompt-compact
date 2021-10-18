@@ -33,7 +33,7 @@ export VIRTUAL_ENV_DISABLE_PROMPT=1
 
 function set_termtitle_preexec() {
     first_arg=${2%% *}
-    if command -v ${first_arg} > /dev/null 2>&1 && [[ ! ${first_arg} =~ ^(_file_opener|_zlua|cd|clear|exa|ls|stat|rmdir|mkdir|which|where)$ ]]; then
+    if command -v ${first_arg} > /dev/null 2>&1 && [[ ! ${first_arg} =~ ^(${PROMPT_NO_HIJACK_TITLE//,/|})$ ]]; then
         comm=${(q)1}
 
         if (( $#comm > ${PROMPT_TRUNCATE_AT} )); then
