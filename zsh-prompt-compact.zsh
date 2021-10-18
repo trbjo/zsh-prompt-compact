@@ -57,13 +57,14 @@ function set_termtitle_preexec() {
 }
 
 function set_termtitle_precmd() {
+    local res=$?
 
     if [[ $was_truncated ]]; then
         set_termtitle_pwd
         unset was_truncated
     fi
 
-    if [[ $? != 0 ]]; then
+    if [[ $res != 0 ]]; then
         print -Pn -- "\e]2;$m${_short_path} ${PROMPT_ERR_ICON}\a"
     else
         print -Pn -- "\e]2;$m${_short_path}\a"
