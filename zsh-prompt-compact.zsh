@@ -35,7 +35,19 @@ function set_termtitle_preexec() {
     first_arg=${2%% *}
     if command -v ${first_arg} > /dev/null 2>&1 && [[ ! ${first_arg} =~ ^(_file_opener|_zlua|cd|clear|exa|ls|stat|rmdir|mkdir|which|where)$ ]]; then
         comm=${(q)1}
-        (( $#comm > 30 )) && comm[13,-13]="…"  # truncate long command names
+
+        if (( $#comm > ${PROMPT_TRUNCATE_AT} )); then
+            local val
+            val=$(( PROMPT_TRUNCATE_AT / 2 - 4 ))
+            comm[$val,-$val]="…"
+        fi
+
+        if (( ${#_short_path} + ${#comm} >= $PROMPT_TRUNCATE_AT )); then
+            typeset -g was_truncated
+            was_truncated=true
+            set_termtitle_pwd (( $PROMPT_TRUNCATE_AT - $#comm - ${#m} - 3 ))
+        fi
+
         if [[ "$PWD" != "$HOME" ]]; then
             print -Pn -- "\e]2;$m$_short_path – $comm\a"
         else
@@ -45,6 +57,12 @@ function set_termtitle_preexec() {
 }
 
 function set_termtitle_precmd() {
+
+    if [[ $was_truncated ]]; then
+        set_termtitle_pwd
+        unset was_truncated
+    fi
+
     if [[ $? != 0 ]]; then
         print -Pn -- "\e]2;$m${_short_path} ${PROMPT_ERR_ICON}\a"
     else
@@ -67,15 +85,15 @@ function set_termtitle_pwd() {
     length=${pd//\//}
     parts=("${(@s[/])pd}")
     num_elems=$(( ${#parts} - 1 ))
-    # we truncate the path when it is longer than 40 chars but always keep at least two dirs
-    while (( ${#length} + ${#parts} > 40 )) && (( $num_elems > 2 )); do
+    # we truncate the path when it is longer than $PROMPT_TRUNCATE_AT chars but always keep at least one dir
+    while (( ${#length} + ${#parts} > ${1:-$PROMPT_TRUNCATE_AT} )) && (( $num_elems > 2 )); do
 
         (( cur_part = ${#parts[$num_elems]} ))
 
-        if (( ${#length} + ${#parts} - 38 > $cur_part )); then
+        if (( ${#length} + ${#parts} - ${1:-$PROMPT_TRUNCATE_AT} > $cur_part )); then
             parts[$num_elems]="…"
         else
-            (( too_long = ${#length} + ${#parts} - 40 ))
+            (( too_long = ${#length} + ${#parts} - ${1:-$PROMPT_TRUNCATE_AT} ))
             (( we_need_this_left = $cur_part / 2 - $too_long /2 -1 ))
             (( we_need_this_right = $cur_part - $we_need_this_left ))
             parts[$num_elems]="${parts[$num_elems]:0:$we_need_this_left}…${parts[$num_elems]:$we_need_this_right}"
@@ -88,6 +106,13 @@ function set_termtitle_pwd() {
     for part in "${parts[@]:1}"; do
         _short_path+=/"$part"
     done
+
+    if (( ${1:-$PROMPT_TRUNCATE_AT} < ${#_short_path} )); then
+        local half val
+        half=$(( ${1:-$PROMPT_TRUNCATE_AT} / 2 ))
+        val=$(( half > 4 ? half : 4 ))
+        _short_path[$val,-$val]="…"
+    fi
 
 }
 
@@ -209,6 +234,7 @@ GIT_CONNECT_TIMEOUT=$((GIT_FETCH_RESULT_VALID_FOR -1))
 READ_ONLY_ICON="${READ_ONLY_ICON:-RO}"
 PROMPT_ERR_ICON="${PROMPT_ERR_ICON:-X}"
 PROMPT_SUCCESS_ICON="${PROMPT_SUCCESS_ICON:-$}"
+PROMPT_TRUNCATE_AT="${PROMPT_TRUNCATE_AT:-40}"
 
 update_git_status() {
     [[ $VCS_STATUS_RESULT == 'ok-async' ]] || return 0
