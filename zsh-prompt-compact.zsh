@@ -49,7 +49,7 @@ function set_termtitle_preexec() {
         fi
 
         if [[ "$PWD" != "$HOME" ]]; then
-            print -Pn -- "\e]2;$m$_short_path │ $comm\a"
+            print -Pn -- "\e]2;$m$_short_path ┃ $comm\a"
         else
             print -Pn -- "\e]2;$m$comm\a"
         fi
