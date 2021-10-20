@@ -43,8 +43,7 @@ function set_termtitle_preexec() {
         fi
 
         if (( ${#_short_path} + ${#comm} >= $PROMPT_TRUNCATE_AT )); then
-            typeset -g was_truncated
-            was_truncated=true
+            _short_path_old=$_short_path
             set_termtitle_pwd (( $PROMPT_TRUNCATE_AT - $#comm - ${#m} - 3 ))
         fi
 
@@ -59,9 +58,9 @@ function set_termtitle_preexec() {
 function set_termtitle_precmd() {
     local res=$?
 
-    if [[ $was_truncated ]]; then
-        set_termtitle_pwd
-        unset was_truncated
+    if [[ $_short_path_old ]]; then
+        _short_path=$_short_path_old
+        unset _short_path_old
     fi
 
     if [[ $res != 0 ]]; then
