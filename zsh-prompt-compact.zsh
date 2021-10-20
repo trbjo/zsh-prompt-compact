@@ -86,7 +86,7 @@ function set_termtitle_pwd() {
     parts=("${(@s[/])pd}")
     num_elems=$(( ${#parts} - 1 ))
     # we truncate the path when it is longer than $PROMPT_TRUNCATE_AT chars but always keep at least one dir
-    while (( ${#length} + ${#parts} > ${1:-$PROMPT_TRUNCATE_AT} )) && (( $num_elems > 2 )); do
+    while (( ${#length} + ${#parts} - 1 > ${1:-$PROMPT_TRUNCATE_AT} )) && (( $num_elems > 2 )); do
 
         (( cur_part = ${#parts[$num_elems]} ))
 
