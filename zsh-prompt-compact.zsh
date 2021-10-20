@@ -86,11 +86,14 @@ function set_termtitle_pwd() {
     parts=("${(@s[/])pd}")
     num_elems=$(( ${#parts} - 1 ))
     # we truncate the path when it is longer than $PROMPT_TRUNCATE_AT chars but always keep at least one dir
-    while (( ${#length} + ${#parts} - 1 > ${1:-$PROMPT_TRUNCATE_AT} )) && (( $num_elems > 2 )); do
+    while (( ${#length} + ${#parts} > ${1:-$PROMPT_TRUNCATE_AT} )) && (( $num_elems > 2 )); do
 
         (( cur_part = ${#parts[$num_elems]} ))
 
-        if (( ${#length} + ${#parts} - ${1:-$PROMPT_TRUNCATE_AT} > $cur_part )); then
+        # the + 2 is because it does not make sense to change the path representation
+        # if only one char is to be changed. We therefore make sure that when we do it,
+        # there is at least three parts to be replaced.
+        if (( ${#length} + ${#parts} - ${1:-$PROMPT_TRUNCATE_AT} + 2 > $cur_part )); then
             parts[$num_elems]="…"
         else
             (( too_long = ${#length} + ${#parts} - ${1:-$PROMPT_TRUNCATE_AT} ))
