@@ -70,6 +70,10 @@ function set_termtitle_precmd() {
     fi
 }
 
+function unset_short_path_old() {
+    unset _short_path_old
+}
+
 function set_termtitle_pwd() {
     typeset -g _short_path
     typeset -a parts
@@ -292,6 +296,7 @@ if [[ -z $PROHIBIT_TERM_TITLE ]]; then
     add-zsh-hook preexec set_termtitle_preexec
     add-zsh-hook precmd set_termtitle_precmd
     add-zsh-hook chpwd set_termtitle_pwd
+    add-zsh-hook chpwd unset_short_path_old
     set_termtitle_pwd
 fi
 
