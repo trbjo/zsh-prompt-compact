@@ -265,7 +265,7 @@ DIR_COLOR=${DIR_COLOR:-6}
 [[ $PROMPT_NEWLINE_SEPARATOR != 0 ]] && PROMPT_NEWLINE_SEPARATOR=1 || unset PROMPT_NEWLINE_SEPARATOR
 
 preprompt() {
-    [ ! -w "$PWD" ] && RO_DIR=" %18F${READ_ONLY_ICON}"
+    [ ! -w "$PWD" ] && RO_DIR=" ${READ_ONLY_ICON}"
     gitstatus_query -t -0 -c update_git_status 'MY'
     PROMPT_PWD=%F{$DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{$DIR_SEPARATOR_COLOR}\/%F{$DIR_COLOR}}
     [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
@@ -274,7 +274,7 @@ preprompt() {
     preprompt() {
         check_cmd_exec_time
         unset cmd_exec_timestamp RO_DIR GITSTATUS PROMPT_NVM PROMPT_VIRTUAL_ENV
-        [ ! -w "$PWD" ] && RO_DIR=" %18F${READ_ONLY_ICON}"
+        [ ! -w "$PWD" ] && RO_DIR=" ${READ_ONLY_ICON}"
         gitstatus_query -t -0 -c update_git_status 'MY'
         PROMPT_PWD=%F{$DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{$DIR_SEPARATOR_COLOR}\/%F{$DIR_COLOR}}
         [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
@@ -305,7 +305,7 @@ fi
 setopt no_prompt_bang prompt_percent prompt_subst
 
 PROMPT=$'${PROMPT_PWD}\e[0m'
-PROMPT+=$'${RO_DIR:+$RO_DIR}${EXEC_TIME:+\x1b[35m$EXEC_TIME}'
+PROMPT+=$'${RO_DIR:+\x1b[38;5;18m$RO_DIR}${EXEC_TIME:+\x1b[35m$EXEC_TIME}'
 PROMPT+=$'${VIRTUAL_ENV:+\x1b[32m${PROMPT_VIRTUAL_ENV}}'
 PROMPT+=$'${NVM_BIN:+\x1b[33m${PROMPT_NVM}}'
 PROMPT+='${GITSTATUS:+$GITSTATUS}%f'
