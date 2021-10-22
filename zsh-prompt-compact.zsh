@@ -6,6 +6,7 @@ activate() {
     fi
 
     typeset -aU venvs
+
     if [[ "${#@}" -eq 1 ]]; then
         venvs+="${1%/*}"
     else
@@ -18,13 +19,25 @@ activate() {
 
     if [[ "${#venvs}" -eq 1 ]]; then
         source "${venvs[@]:0}/bin/activate"
+        return 0
     elif [[ "${#venvs}" -gt 1 ]]; then
         print "More than one venv: \x1b[3m${venvs[@]##*/}\e[0m"
         print "Use \`activate <venv>\` to activate it"
         return 1
     elif [[ "${#venvs}" -eq 0 ]]; then
-        print "No venv found"
-        return 1
+        print -n "No venv found"
+        if [[ $VCS_STATUS_RESULT == 'ok-async' ]] && [[ "$PWD" != $VCS_STATUS_WORKDIR ]]; then
+            print -n ", trying git root dir"
+            cd $VCS_STATUS_WORKDIR
+            activate
+            cd $OLDPWD
+            print
+            return 0
+        else
+            print
+            return 1
+        fi
+
     fi
 }
 
