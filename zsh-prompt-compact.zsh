@@ -317,6 +317,8 @@ fi
 # Enable/disable the right prompt options.
 setopt no_prompt_bang prompt_percent prompt_subst
 
+export PROMPT_EOL_MARK='%F{1}❮❮❮%f'
+
 PROMPT=$'${PROMPT_PWD}\e[0m'
 PROMPT+=$'${RO_DIR:+\x1b[38;5;18m$RO_DIR}${EXEC_TIME:+\x1b[35m$EXEC_TIME}'
 PROMPT+=$'${VIRTUAL_ENV:+\x1b[32m${PROMPT_VIRTUAL_ENV}}'
