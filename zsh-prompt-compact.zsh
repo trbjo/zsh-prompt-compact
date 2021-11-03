@@ -344,5 +344,5 @@ PROMPT+=$'${VIRTUAL_ENV:+\x1b[32m${PROMPT_VIRTUAL_ENV}}'
 PROMPT+=$'${NVM_BIN:+\x1b[33m${PROMPT_NVM}}'
 PROMPT+='${GITSTATUS:+$GITSTATUS}%f'
 PROMPT+=$'\n'
-[ $SSH_TTY ] && PROMPT+="%B[%b%m%B]%b " m="%m: "
+[ $SSH_CONNECTION ] && PROMPT+="%B[%b%m%B]%b " m="%m: "
 PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
