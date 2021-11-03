@@ -101,37 +101,52 @@ function set_termtitle_pwd() {
 
     length=${pd//\//}
     parts=("${(@s[/])pd}")
-    num_elems=$(( ${#parts} - 1 ))
-    # we truncate the path when it is longer than $PROMPT_TRUNCATE_AT chars but always keep at least one dir
-    while (( ${#length} + ${#parts} > ${1:-$PROMPT_TRUNCATE_AT} )) && (( $num_elems > 2 )); do
+    num_of_elems=${#parts}
+    _index_of_elem_to_truncate=$(( num_of_elems - 1 ))
 
-        (( cur_part = ${#parts[$num_elems]} ))
+    # total length is the length of the strings themselves, the number of slashes,
+    # the length of _short_path + 1 because we always need to add at least one slash
+    (( _num_of_chars_too_long = ${#length} + $num_of_elems + ${#_short_path} + 1 - ${1:-$PROMPT_TRUNCATE_AT} ))
 
-        # the + 2 is because it does not make sense to change the path representation
-        # if only one char is to be changed. We therefore make sure that when we do it,
-        # there is at least three parts to be replaced.
-        if (( ${#length} + ${#parts} - ${1:-$PROMPT_TRUNCATE_AT} + 2 > $cur_part )); then
-            parts[$num_elems]="…"
+    while (( $_num_of_chars_too_long > 0 )) && (( $_index_of_elem_to_truncate > 2 )); do
+
+        (( _cur_part_len = ${#parts[$_index_of_elem_to_truncate]} ))
+
+        if (( $_num_of_chars_too_long > $_cur_part_len )); then
+            parts[$_index_of_elem_to_truncate]="…"
         else
-            (( too_long = ${#length} + ${#parts} - ${1:-$PROMPT_TRUNCATE_AT} ))
-            (( we_need_this_left = $cur_part / 2 - $too_long /2 -1 ))
-            (( we_need_this_right = $cur_part - $we_need_this_left ))
-            parts[$num_elems]="${parts[$num_elems]:0:$we_need_this_left}…${parts[$num_elems]:$we_need_this_right}"
+
+            if (( _cur_part_len % 2 != 0 )); then
+                (( _divide_at = ( _cur_part_len + 1 ) / 2 ))
+            else
+                (( _divide_at = _cur_part_len / 2 ))
+            fi
+
+            if (( _num_of_chars_too_long % 2 != 0 )); then
+                (( _eat_this_many_left = ( _num_of_chars_too_long - 1 ) / 2 ))
+                (( _eat_this_many_right = ( _num_of_chars_too_long + 1 ) / 2 ))
+            else
+                (( _eat_this_many_left = _num_of_chars_too_long / 2 ))
+                (( _eat_this_many_right = _num_of_chars_too_long / 2 ))
+            fi
+
+            (( _we_need_this_left = $_divide_at - _eat_this_many_left - 1 ))
+            (( _we_need_this_right = $_divide_at + _eat_this_many_right ))
+
+            parts[$_index_of_elem_to_truncate]="${parts[$_index_of_elem_to_truncate]:0:$_we_need_this_left}…${parts[$_index_of_elem_to_truncate]:$_we_need_this_right}"
         fi
 
         printf -v length '%s' "${parts[@]}"
-        num_elems=$(( $num_elems - 1 ))
+        _index_of_elem_to_truncate=$(( $_index_of_elem_to_truncate - 1 ))
+        (( _num_of_chars_too_long = ${#length} + $num_of_elems + ${#_short_path} + 1 - ${1:-$PROMPT_TRUNCATE_AT} ))
     done
 
-    for part in "${parts[@]:1}"; do
-        _short_path+=/"$part"
-    done
-
-    if (( ${1:-$PROMPT_TRUNCATE_AT} < ${#_short_path} )); then
-        local half val
-        half=$(( ${1:-$PROMPT_TRUNCATE_AT} / 2 ))
-        val=$(( half > 4 ? half : 4 ))
-        _short_path[$val,-$val]="…"
+    if (( $_num_of_chars_too_long > 0 )); then
+        _short_path+=/"${parts[2]}/………/${parts[-1]}"
+    else
+        for part in "${parts[@]:1}"; do
+            _short_path+=/"$part"
+        done
     fi
 
 }
