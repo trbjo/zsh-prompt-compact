@@ -57,7 +57,7 @@ function set_termtitle_preexec() {
 
         if (( ${#_short_path} + ${#comm} >= $PROMPT_TRUNCATE_AT )); then
             _short_path_old=$_short_path
-            set_termtitle_pwd (( $PROMPT_TRUNCATE_AT - $#comm - ${#m} - 3 ))
+            set_termtitle_pwd (( $PROMPT_TRUNCATE_AT - ${#comm:Q} - ${#m} - 3 ))
         fi
 
         if [[ "$PWD" != "$HOME" ]]; then
