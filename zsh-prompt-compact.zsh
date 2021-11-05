@@ -70,18 +70,28 @@ function set_termtitle_preexec() {
 }
 
 function set_termtitle_precmd() {
-    local res=$?
+    local __res=$?
 
     if [[ $_short_path_old ]]; then
         _short_path=$_short_path_old
         unset _short_path_old
     fi
 
-    if [[ $res != 0 ]]; then
+    if [[ $__oldres != $__res ]]; then
+        if [[ $__res != 0 ]]; then
+            set_termtitle_pwd (( $PROMPT_TRUNCATE_AT - ${#PROMPT_ERR_ICON} - 1 ))
+        else
+            set_termtitle_pwd
+        fi
+    fi
+
+    if [[ $__res != 0 ]]; then
         print -Pn -- "\e]2;$m${_short_path} ${PROMPT_ERR_ICON}\a"
     else
         print -Pn -- "\e]2;$m${_short_path}\a"
     fi
+
+    __oldres=$__res
 }
 
 function unset_short_path_old() {
