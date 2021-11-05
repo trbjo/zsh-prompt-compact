@@ -55,12 +55,13 @@ function set_termtitle_preexec() {
             comm[$val,-$val]="…"
         fi
 
-        if (( ${#_short_path} + ${#comm} >= $PROMPT_TRUNCATE_AT )); then
-            _short_path_old=$_short_path
-            set_termtitle_pwd (( $PROMPT_TRUNCATE_AT - ${#comm:Q} - ${#m} - 3 ))
-        fi
-
         if [[ "$PWD" != "$HOME" ]]; then
+
+            if (( ${#_short_path} + ${#comm} >= $PROMPT_TRUNCATE_AT )); then
+                _short_path_old=$_short_path
+                set_termtitle_pwd (( $PROMPT_TRUNCATE_AT - ${#comm:Q} - ${#m} - 3 ))
+            fi
+
             print -Pn -- "\e]2;$m$_short_path | $comm\a"
         else
             print -Pn -- "\e]2;$m$comm\a"
