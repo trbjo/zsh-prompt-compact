@@ -47,24 +47,44 @@ export VIRTUAL_ENV_DISABLE_PROMPT=1
 function set_termtitle_preexec() {
     first_arg=${2%% *}
     if command -v ${first_arg} > /dev/null 2>&1 && [[ ! ${first_arg} =~ ^(${PROMPT_NO_HIJACK_TITLE//,/|})$ ]]; then
-        comm=${(q)1}
-
-        if (( $#comm > ${PROMPT_TRUNCATE_AT} )); then
-            local val
-            val=$(( PROMPT_TRUNCATE_AT / 2 - 4 ))
-            comm[$val,-$val]="…"
-        fi
+        comm=${1}
 
         if [[ "$PWD" != "$HOME" ]]; then
 
             if (( ${#${PWD/#$HOME/~}} + ${#comm} >= $PROMPT_TRUNCATE_AT )); then
+
+                if (( $#comm > ${PROMPT_TRUNCATE_AT} / 2 )); then
+                    local _left_half _right_half
+                    if (( ${PROMPT_TRUNCATE_AT} % 2 != 0 )); then
+                        (( _left_half = ( ${PROMPT_TRUNCATE_AT} + 1 ) / 4  ))
+                        (( _right_half = ( ${PROMPT_TRUNCATE_AT} - 1 ) / 4 ))
+                    else
+                        (( _right_half = _left_half = ${PROMPT_TRUNCATE_AT} / 4 ))
+                    fi
+                    comm[(( $_left_half + 1 )),-$_right_half]="…"
+                fi
+
                 _short_path_old=$_short_path
-                set_termtitle_pwd (( $PROMPT_TRUNCATE_AT - ${#comm:Q} - ${#m} - 3 ))
+                set_termtitle_pwd $(( $PROMPT_TRUNCATE_AT - ${#comm} - ${#m} - 3 ))
             fi
 
-            print -Pn -- "\e]2;$m$_short_path | $comm\a"
+            print -Pn -- "\e]2;$m$_short_path | ${(q)comm}\a"
+
         else
-            print -Pn -- "\e]2;$m$comm\a"
+
+            if (( $#comm > ${PROMPT_TRUNCATE_AT} )); then
+                local _left_half _right_half
+                if (( ${PROMPT_TRUNCATE_AT} % 2 != 0 )); then
+                    (( _left_half = ( ${PROMPT_TRUNCATE_AT} + 1 ) / 2  ))
+                    (( _right_half = ( ${PROMPT_TRUNCATE_AT} - 1 ) / 2 ))
+                else
+                    (( _right_half = _left_half = ${PROMPT_TRUNCATE_AT} / 2 ))
+                fi
+
+                comm[(( $_left_half + 1 )),-$_right_half]="…"
+            fi
+
+            print -Pn -- "\e]2;$m${(q)comm}\a"
         fi
     fi
 }
