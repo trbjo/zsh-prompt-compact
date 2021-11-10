@@ -68,7 +68,7 @@ function set_termtitle_preexec() {
                 set_termtitle_pwd $(( $PROMPT_TRUNCATE_AT - ${#comm} - ${#m} - 3 ))
             fi
 
-            print -Pn -- "\e]2;$m$_short_path | ${(q)comm}\a"
+            print -n -- "\e]2;$m$_short_path | ${(q)comm}\a"
 
         else
 
@@ -84,7 +84,7 @@ function set_termtitle_preexec() {
                 comm[(( $_left_half + 1 )),-$_right_half]="…"
             fi
 
-            print -Pn -- "\e]2;$m${(q)comm}\a"
+            print -n -- '\e]2;'$m${(q)comm}'\a'
         fi
     fi
 }
@@ -106,9 +106,9 @@ function set_termtitle_precmd() {
     fi
 
     if [[ $__res != 0 ]]; then
-        print -Pn -- "\e]2;$m${_short_path} ${PROMPT_ERR_ICON}\a"
+        print -n -- "\e]2;$m${_short_path} ${PROMPT_ERR_ICON}\a"
     else
-        print -Pn -- "\e]2;$m${_short_path}\a"
+        print -n -- "\e]2;$m${_short_path}\a"
     fi
 
     __oldres=$__res
