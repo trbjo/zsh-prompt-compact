@@ -362,6 +362,9 @@ preprompt() {
 # enable staged, unstaged, conflicted and untracked counters.
 gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 
+# clear the screen before we load for the first time
+print -n '\033[2J\033[3J\033[H'
+
 autoload -Uz add-zsh-hook
 add-zsh-hook preexec control_git_sideeffects_preexec
 add-zsh-hook precmd preprompt
@@ -373,7 +376,6 @@ if [[ -z $PROHIBIT_TERM_TITLE ]]; then
     add-zsh-hook chpwd unset_short_path_old
     set_termtitle_pwd
 fi
-
 
 # Enable/disable the right prompt options.
 setopt no_prompt_bang prompt_percent prompt_subst
