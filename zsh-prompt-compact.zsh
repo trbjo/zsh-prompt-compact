@@ -362,9 +362,6 @@ preprompt() {
 # enable staged, unstaged, conflicted and untracked counters.
 gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 
-# clear the screen before we load for the first time
-[ $SSH_CONNECTION ] || print -n '\033[2J\033[3J\033[H'
-
 autoload -Uz add-zsh-hook
 add-zsh-hook preexec control_git_sideeffects_preexec
 add-zsh-hook precmd preprompt
