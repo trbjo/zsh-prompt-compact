@@ -357,6 +357,14 @@ preprompt() {
     }
 }
 
+function ssh() {
+    if [[ "${#@}" -eq 1 ]]; then
+        /usr/bin/ssh "$1" -t env PROMPT_SSH_NAME="$1" $SHELL
+    else
+        /usr/bin/ssh "$@"
+    fi
+}
+
 # Start gitstatusd instance with name "MY". The same name is passed to
 # gitstatus_query in gitstatus_update_changes_only. The flags with -1 as values
 # enable staged, unstaged, conflicted and untracked counters.
@@ -386,11 +394,11 @@ PROMPT+=$'${NVM_BIN:+\x1b[33m${PROMPT_NVM}}'
 PROMPT+='${GITSTATUS:+$GITSTATUS}%f'
 PROMPT+=$'\n'
 if [[ $SSH_CONNECTION ]]; then
-    PROMPT+="%B[%b%m%B]%b "
-    if (( $#HOST > 15 )); then
-        m="${HOST:0:7}…${HOST: -7}: "
+    PROMPT+="%B[%b$PROMPT_SSH_NAME%B]%b "
+    if (( $#PROMPT_SSH_NAME > 15 )); then
+        m="${PROMPT_SSH_NAME:0:7}…${PROMPT_SSH_NAME: -7}: "
     else
-        m="${HOST}: "
+        m="${PROMPT_SSH_NAME}: "
     fi
 fi
 PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
