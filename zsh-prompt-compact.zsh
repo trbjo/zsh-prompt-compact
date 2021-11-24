@@ -385,5 +385,12 @@ PROMPT+=$'${VIRTUAL_ENV:+\x1b[32m${PROMPT_VIRTUAL_ENV}}'
 PROMPT+=$'${NVM_BIN:+\x1b[33m${PROMPT_NVM}}'
 PROMPT+='${GITSTATUS:+$GITSTATUS}%f'
 PROMPT+=$'\n'
-[ $SSH_CONNECTION ] && PROMPT+="%B[%b%m%B]%b " m="${HOST}: "
+if [[ $SSH_CONNECTION ]]; then
+    PROMPT+="%B[%b%m%B]%b "
+    if (( $#HOST > 15 )); then
+        m="${HOST:0:7}…${HOST: -7}: "
+    else
+        m="${HOST}: "
+    fi
+fi
 PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
