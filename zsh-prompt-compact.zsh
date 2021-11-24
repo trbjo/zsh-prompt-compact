@@ -393,7 +393,11 @@ PROMPT+=$'${VIRTUAL_ENV:+\x1b[32m${PROMPT_VIRTUAL_ENV}}'
 PROMPT+=$'${NVM_BIN:+\x1b[33m${PROMPT_NVM}}'
 PROMPT+='${GITSTATUS:+$GITSTATUS}%f'
 PROMPT+=$'\n'
+
 if [[ $SSH_CONNECTION ]]; then
+    if [[ -z "$PROMPT_SSH_NAME" ]]; then
+        PROMPT_SSH_NAME="%m"
+    fi
     PROMPT+="%B[%b$PROMPT_SSH_NAME%B]%b "
     if (( $#PROMPT_SSH_NAME > 15 )); then
         m="${PROMPT_SSH_NAME:0:7}…${PROMPT_SSH_NAME: -7}: "
