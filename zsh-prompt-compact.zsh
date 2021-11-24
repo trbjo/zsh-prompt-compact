@@ -396,7 +396,7 @@ PROMPT+=$'\n'
 
 if [[ $SSH_CONNECTION ]]; then
     if [[ -z "$PROMPT_SSH_NAME" ]]; then
-        PROMPT_SSH_NAME="%m"
+        PROMPT_SSH_NAME="${HOST}"
     fi
     PROMPT+="%B[%b$PROMPT_SSH_NAME%B]%b "
     if (( $#PROMPT_SSH_NAME > 15 )); then
