@@ -400,9 +400,9 @@ if [[ $SSH_CONNECTION ]]; then
     fi
     PROMPT+="%B[%b$PROMPT_SSH_NAME%B]%b "
     if (( $#PROMPT_SSH_NAME > 15 )); then
-        m="${PROMPT_SSH_NAME:0:7}…${PROMPT_SSH_NAME: -7}: "
+        m="[${PROMPT_SSH_NAME:0:7}…${PROMPT_SSH_NAME: -7}] "
     else
-        m="${PROMPT_SSH_NAME}: "
+        m="[${PROMPT_SSH_NAME}] "
     fi
 fi
 PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
