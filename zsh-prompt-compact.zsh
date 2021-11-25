@@ -115,7 +115,8 @@ function set_termtitle_precmd() {
 }
 
 function unset_short_path_old() {
-    unset _short_path_old
+    unset _short_path_old RO_DIR
+    [ ! -w "$PWD" ] && RO_DIR=" ${READ_ONLY_ICON}"
 }
 
 function set_termtitle_pwd() {
@@ -347,8 +348,7 @@ preprompt() {
 
     preprompt() {
         check_cmd_exec_time
-        unset cmd_exec_timestamp RO_DIR GITSTATUS PROMPT_NVM PROMPT_VIRTUAL_ENV
-        [ ! -w "$PWD" ] && RO_DIR=" ${READ_ONLY_ICON}"
+        unset cmd_exec_timestamp GITSTATUS PROMPT_NVM PROMPT_VIRTUAL_ENV
         gitstatus_query -t -0 -c update_git_status 'MY'
         PROMPT_PWD=%F{$DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/%F{$DIR_COLOR}}
         [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
