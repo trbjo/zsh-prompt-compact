@@ -148,7 +148,8 @@ function set_termtitle_pwd() {
             (( _left_half = ( ${1:-$PROMPT_TRUNCATE_AT} + 1 ) / 2 - 2 ))
             (( _right_half = ( ${1:-$PROMPT_TRUNCATE_AT} - 1 ) / 2 - 2 ))
         else
-            (( _right_half = _left_half = ${1:-$PROMPT_TRUNCATE_AT} / 2 - 2 ))
+            (( _right_half = ${1:-$PROMPT_TRUNCATE_AT} / 2 - 2 ))
+            (( _left_half = ${1:-$PROMPT_TRUNCATE_AT} / 2 - 2 ))
         fi
 
         pd[$_left_half,-$_right_half]="………"
