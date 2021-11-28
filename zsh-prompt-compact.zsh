@@ -65,7 +65,7 @@ function set_termtitle_preexec() {
                 fi
 
                 _short_path_old=$_short_path
-                set_termtitle_pwd $(( $PROMPT_TRUNCATE_AT - ${#comm} - ${#m} - 3 ))
+                set_termtitle_pwd $(( $PROMPT_TRUNCATE_AT - ${#comm} - 3 ))
             fi
 
             print -n -- "\e]2;$m$_short_path | ${(q)comm}\a"
