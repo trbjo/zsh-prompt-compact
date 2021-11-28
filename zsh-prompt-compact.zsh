@@ -337,13 +337,12 @@ update_git_status_wrapper() {
     gitstatus_query -t -0 -c update_git_status 'MY'
 }
 
-DIR_COLOR=${DIR_COLOR:-6}
 [[ $PROMPT_NEWLINE_SEPARATOR != 0 ]] && PROMPT_NEWLINE_SEPARATOR=1 || unset PROMPT_NEWLINE_SEPARATOR
 
 preprompt() {
     [ ! -w "$PWD" ] && RO_DIR=" ${READ_ONLY_ICON}"
     gitstatus_query -t -0 -c update_git_status 'MY'
-    PROMPT_PWD=%F{$DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/%F{$DIR_COLOR}}
+    PROMPT_PWD=%F{$_dir_color}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/%F{$_dir_color}}
     [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
     [[ $VIRTUAL_ENV ]] && PROMPT_VIRTUAL_ENV=" 🐍${VIRTUAL_ENV##/*/}"
 
@@ -351,7 +350,7 @@ preprompt() {
         check_cmd_exec_time
         unset cmd_exec_timestamp GITSTATUS PROMPT_NVM PROMPT_VIRTUAL_ENV
         gitstatus_query -t -0 -c update_git_status 'MY'
-        PROMPT_PWD=%F{$DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/%F{$DIR_COLOR}}
+        PROMPT_PWD=%F{$_dir_color}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/%F{$_dir_color}}
         [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
         [[ $VIRTUAL_ENV ]] && PROMPT_VIRTUAL_ENV=" 🐍${VIRTUAL_ENV##/*/}"
         [[ $PROMPT_NEWLINE_SEPARATOR ]] && print
