@@ -117,6 +117,7 @@ function set_termtitle_precmd() {
 function unset_short_path_old() {
     unset _short_path_old RO_DIR
     [ ! -w "$PWD" ] && RO_DIR=" ${READ_ONLY_ICON}"
+    PROMPT_PWD=${_di_color_zsh}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$_di_color_zsh}%{$reset_color%}
 }
 
 function set_termtitle_pwd() {
@@ -298,7 +299,6 @@ write_git_status() {
         ((PROMPT_LENGTH= COLUMNS - GITSTATUS_PROMPT_LEN - 1))
         GITSTATUS=" %B$p%b"
         print -Pn -- '\x1B[s\x1B[F\x1B[${PROMPT_LENGTH}C\x1B[0K${GITSTATUS}%b\x1B[u'
-        # PROMPT_PWD=""
     else
         GITSTATUS=" %B$p%b"
         print -Pn -- '\x1B[s\x1B[F\x1B[${PROMPT_LENGTH}C\x1B[0K${GITSTATUS}%b\x1B[u'
@@ -342,7 +342,6 @@ update_git_status_wrapper() {
 preprompt() {
     [ ! -w "$PWD" ] && RO_DIR=" ${READ_ONLY_ICON}"
     gitstatus_query -t -0 -c update_git_status 'MY'
-    PROMPT_PWD=${_di_color_zsh}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$_di_color_zsh}%{$reset_color%}
     [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
     [[ $VIRTUAL_ENV ]] && PROMPT_VIRTUAL_ENV=" 🐍${VIRTUAL_ENV##/*/}"
 
@@ -350,7 +349,6 @@ preprompt() {
         check_cmd_exec_time
         unset cmd_exec_timestamp GITSTATUS PROMPT_NVM PROMPT_VIRTUAL_ENV
         gitstatus_query -t -0 -c update_git_status 'MY'
-        PROMPT_PWD=${_di_color_zsh}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$_di_color_zsh}%{$reset_color%}
         [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
         [[ $VIRTUAL_ENV ]] && PROMPT_VIRTUAL_ENV=" 🐍${VIRTUAL_ENV##/*/}"
         [[ $PROMPT_NEWLINE_SEPARATOR ]] && print
