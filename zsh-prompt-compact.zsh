@@ -41,9 +41,6 @@ activate() {
     fi
 }
 
-# disable python's built in manipulation of the prompt in favor of our own
-export VIRTUAL_ENV_DISABLE_PROMPT=1
-
 function set_termtitle_preexec() {
     first_arg=${2%% *}
     if command -v ${first_arg} > /dev/null 2>&1 && [[ ! ${first_arg} =~ ^(${PROMPT_NO_HIJACK_TITLE//,/|})$ ]]; then
@@ -115,8 +112,8 @@ function set_termtitle_precmd() {
 }
 
 function unset_short_path_old() {
-    unset _short_path_old RO_DIR
-    [ ! -w "$PWD" ] && RO_DIR=" ${READ_ONLY_ICON}"
+    unset _short_path_old _read_only_dir
+    [ ! -w "$PWD" ] && _read_only_dir=" ${PROMPT_READ_ONLY_ICON}"
     PROMPT_PWD=${_di_color_zsh}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$_di_color_zsh}%{$reset_color%}
 }
 
@@ -294,7 +291,7 @@ write_git_status() {
 
     GITSTATUS_PROMPT_LEN="${(m)#${${p//\%\%/x}//\%(f|<->F)}}"
     # print $GITSTATUS_PROMPT_LEN
-    (( PROMPT_LENGTH=${VIRTUAL_ENV:+(( ${#PROMPT_VIRTUAL_ENV} + 1))} + ${#PROMPT_NVM} + ${#RO_DIR} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~}))
+    (( PROMPT_LENGTH=${VIRTUAL_ENV:+(( ${#PROMPT_VIRTUAL_ENV} + 1))} + ${#PROMPT_NVM} + ${#_read_only_dir} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~}))
     if (( PROMPT_LENGTH + GITSTATUS_PROMPT_LEN  > COLUMNS )); then
         ((PROMPT_LENGTH= COLUMNS - GITSTATUS_PROMPT_LEN - 1))
         GITSTATUS=" %B$p%b"
@@ -307,25 +304,12 @@ write_git_status() {
 
 }
 
-typeset -gA _last_checks
-typeset -gA _git_fetch_pwds
-typeset -gA _repo_up_to_date
-
-GIT_FETCH_RESULT_VALID_FOR=${GIT_FETCH_RESULT_VALID_FOR:-60}
-(( $GIT_FETCH_RESULT_VALID_FOR < 2 )) && GIT_FETCH_RESULT_VALID_FOR=2
-GIT_CONNECT_TIMEOUT=$((GIT_FETCH_RESULT_VALID_FOR -1))
-
-READ_ONLY_ICON="${READ_ONLY_ICON:-RO}"
-PROMPT_ERR_ICON="${PROMPT_ERR_ICON:-X}"
-PROMPT_SUCCESS_ICON="${PROMPT_SUCCESS_ICON:-$}"
-PROMPT_TRUNCATE_AT="${PROMPT_TRUNCATE_AT:-40}"
-
 update_git_status() {
     [[ $VCS_STATUS_RESULT == 'ok-async' ]] || return 0
     [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_RESULT_VALID_FOR} ]] && \
     _repo_up_to_date[$VCS_STATUS_WORKDIR]=false local out_of_date=1
     write_git_status
-    [[ $GIT_FETCH_REMOTE == true ]] || return 0
+    [[ $PROMPT_GIT_FETCH_REMOTE == true ]] || return 0
     [[ $out_of_date ]] || return 0
     _last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
     { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=$GIT_CONNECT_TIMEOUT -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &&\
@@ -337,10 +321,8 @@ update_git_status_wrapper() {
     gitstatus_query -t -0 -c update_git_status 'MY'
 }
 
-[[ $PROMPT_NEWLINE_SEPARATOR != 0 ]] && PROMPT_NEWLINE_SEPARATOR=1 || unset PROMPT_NEWLINE_SEPARATOR
-
 preprompt() {
-    [ ! -w "$PWD" ] && RO_DIR=" ${READ_ONLY_ICON}"
+    [ ! -w "$PWD" ] && _read_only_dir=" ${PROMPT_READ_ONLY_ICON}"
     gitstatus_query -t -0 -c update_git_status 'MY'
     [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
     [[ $VIRTUAL_ENV ]] && PROMPT_VIRTUAL_ENV=" 🐍${VIRTUAL_ENV##/*/}"
@@ -363,44 +345,68 @@ function ssh() {
     fi
 }
 
-# Start gitstatusd instance with name "MY". The same name is passed to
-# gitstatus_query in gitstatus_update_changes_only. The flags with -1 as values
-# enable staged, unstaged, conflicted and untracked counters.
-gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
+function setup() {
+    # disable python's built in manipulation of the prompt in favor of our own
+    export VIRTUAL_ENV_DISABLE_PROMPT=1
 
-autoload -Uz add-zsh-hook
-add-zsh-hook preexec control_git_sideeffects_preexec
-add-zsh-hook precmd preprompt
+    typeset -gA _last_checks
+    typeset -gA _git_fetch_pwds
+    typeset -gA _repo_up_to_date
 
-if [[ -z $PROHIBIT_TERM_TITLE ]]; then
-    add-zsh-hook preexec set_termtitle_preexec
-    add-zsh-hook precmd set_termtitle_precmd
-    add-zsh-hook chpwd set_termtitle_pwd
+    GIT_FETCH_RESULT_VALID_FOR=${GIT_FETCH_RESULT_VALID_FOR:-60}
+    (( $GIT_FETCH_RESULT_VALID_FOR < 2 )) && GIT_FETCH_RESULT_VALID_FOR=2
+    GIT_CONNECT_TIMEOUT=$((GIT_FETCH_RESULT_VALID_FOR -1))
+
+    PROMPT_READ_ONLY_ICON="${PROMPT_READ_ONLY_ICON:-RO}"
+    PROMPT_ERR_ICON="${PROMPT_ERR_ICON:-X}"
+    PROMPT_SUCCESS_ICON="${PROMPT_SUCCESS_ICON:-$}"
+    PROMPT_TRUNCATE_AT="${PROMPT_TRUNCATE_AT:-40}"
+
+    [[ $PROMPT_NEWLINE_SEPARATOR != 0 ]] && PROMPT_NEWLINE_SEPARATOR=1 || unset PROMPT_NEWLINE_SEPARATOR
+
+    # Start gitstatusd instance with name "MY". The same name is passed to
+    # gitstatus_query in gitstatus_update_changes_only. The flags with -1 as values
+    # enable staged, unstaged, conflicted and untracked counters.
+    gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
+
+    autoload -Uz add-zsh-hook
+    add-zsh-hook preexec control_git_sideeffects_preexec
+    add-zsh-hook precmd preprompt
+
+    if [[ -z $PROHIBIT_TERM_TITLE ]]; then
+        add-zsh-hook preexec set_termtitle_preexec
+        add-zsh-hook precmd set_termtitle_precmd
+        add-zsh-hook chpwd set_termtitle_pwd
+        set_termtitle_pwd
+    fi
+
+    PROMPT_PWD=${_di_color_zsh}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$_di_color_zsh}%{$reset_color%}
     add-zsh-hook chpwd unset_short_path_old
-    set_termtitle_pwd
-fi
 
-# Enable/disable the right prompt options.
-setopt no_prompt_bang prompt_percent prompt_subst
+    # Enable/disable the right prompt options.
+    setopt no_prompt_bang prompt_percent prompt_subst
 
-export PROMPT_EOL_MARK='%F{1}❮❮❮%f'
+    export PROMPT_EOL_MARK='%F{1}❮❮❮%f'
 
-PROMPT=$'${PROMPT_PWD}%F{fg_default_code}'
-PROMPT+=$'${RO_DIR:+\x1b[38;5;18m$RO_DIR}${EXEC_TIME:+\x1b[35m$EXEC_TIME}'
-PROMPT+=$'${VIRTUAL_ENV:+\x1b[32m${PROMPT_VIRTUAL_ENV}}'
-PROMPT+=$'${NVM_BIN:+\x1b[33m${PROMPT_NVM}}'
-PROMPT+='${GITSTATUS:+$GITSTATUS}%f'
-PROMPT+=$'\n'
+    PROMPT=$'${PROMPT_PWD}%F{fg_default_code}'
+    PROMPT+=$'${_read_only_dir:+\x1b[38;5;18m$_read_only_dir}${EXEC_TIME:+\x1b[35m$EXEC_TIME}'
+    PROMPT+=$'${VIRTUAL_ENV:+\x1b[32m${PROMPT_VIRTUAL_ENV}}'
+    PROMPT+=$'${NVM_BIN:+\x1b[33m${PROMPT_NVM}}'
+    PROMPT+='${GITSTATUS:+$GITSTATUS}%f'
+    PROMPT+=$'\n'
 
-if [[ $SSH_CONNECTION ]]; then
-    if [[ -z "$PROMPT_SSH_NAME" ]]; then
-        PROMPT_SSH_NAME="${HOST}"
+    if [[ $SSH_CONNECTION ]]; then
+        if [[ -z "$PROMPT_SSH_NAME" ]]; then
+            PROMPT_SSH_NAME="${HOST}"
+        fi
+        PROMPT+="%B[%b$PROMPT_SSH_NAME%B]%b "
+        if (( $#PROMPT_SSH_NAME > 15 )); then
+            m="[${PROMPT_SSH_NAME:0:7}…${PROMPT_SSH_NAME: -7}] "
+        else
+            m="[${PROMPT_SSH_NAME}] "
+        fi
     fi
-    PROMPT+="%B[%b$PROMPT_SSH_NAME%B]%b "
-    if (( $#PROMPT_SSH_NAME > 15 )); then
-        m="[${PROMPT_SSH_NAME:0:7}…${PROMPT_SSH_NAME: -7}] "
-    else
-        m="[${PROMPT_SSH_NAME}] "
-    fi
-fi
-PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
+    PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
+}
+
+setup
