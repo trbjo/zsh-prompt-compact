@@ -129,18 +129,19 @@ function set_termtitle_pwd() {
         pd="$PWD"
     fi
 
-    length=${pd//\//}
     parts=("${(@s[/])pd}")
     num_of_elems=${#parts}
-    _index_of_elem_to_truncate=$(( num_of_elems - 1 ))
 
-    # total length is the length of the strings themselves, the number of slashes,
-    # the length of _short_path + 1 because we always need to add at least one slash
-    (( _num_of_chars_too_long = ${#length} + $num_of_elems + ${#_short_path} + 1 - ${1:-$PROMPT_TRUNCATE_AT} ))
+    integer max_trunc
+    if [[ ${#parts} -le 2 ]]; then
+        (( max_trunc = 2 * num_of_elems + ${#parts[-1]} + 1  ))
+    else
+        (( max_trunc = 2 * num_of_elems + ${#parts[2]} + ${#parts[-1]} + 1  ))
+    fi
 
     # If the maximum prompt truncation is still to long, we just truncate the middle of the string
     # not regarding the individual dirs
-    if (( 2 * num_of_elems + ${#parts[2]} + ${#parts[-1]} + 1 > ${1:-$PROMPT_TRUNCATE_AT} )); then
+    if (( max_trunc > ${1:-$PROMPT_TRUNCATE_AT} )); then
 
         if (( ${1:-$PROMPT_TRUNCATE_AT} % 2 != 0 )); then
             (( _left_half = ( ${1:-$PROMPT_TRUNCATE_AT} + 1 ) / 2 - 2 ))
@@ -150,10 +151,15 @@ function set_termtitle_pwd() {
             (( _left_half = ${1:-$PROMPT_TRUNCATE_AT} / 2 - 2 ))
         fi
 
-        pd[$_left_half,-$_right_half]="………"
+        pd[$_left_half,-$_right_half]="……"
         _short_path=$pd
         return
     else
+        # total length is the length of the strings themselves, the number of slashes,
+        # the length of _short_path + 1 because we always need to add at least one slash
+        length=${pd//\//}
+        (( _num_of_chars_too_long = ${#length} + $num_of_elems + ${#_short_path} + 1 - ${1:-$PROMPT_TRUNCATE_AT} ))
+        _index_of_elem_to_truncate=$(( num_of_elems - 1 ))
         while (( $_num_of_chars_too_long > 0 )) && (( $_index_of_elem_to_truncate > 2 )); do
 
             (( _cur_part_len = ${#parts[$_index_of_elem_to_truncate]} ))
