@@ -25,10 +25,9 @@ activate() {
         print "Use \`activate <venv>\` to activate it"
         return 1
     elif [[ "${#venvs}" -eq 0 ]]; then
-        print -n "No venv found${_ROOTED:+ in $_colorfile}"
+        print -n "No venv found${_ROOTED:+ in $(_colorizer $VCS_STATUS_WORKDIR)}"
         if [[ $VCS_STATUS_RESULT == 'ok-async' ]] && [[ "$PWD" != $VCS_STATUS_WORKDIR ]]; then
             print ", trying git root dir"
-            _colorizer $VCS_STATUS_WORKDIR
             _ROOTED=true
             cd $VCS_STATUS_WORKDIR
             activate
