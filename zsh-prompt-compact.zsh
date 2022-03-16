@@ -1,12 +1,9 @@
 activate() {
-
     if [[ $VIRTUAL_ENV ]]; then
         print "Deactivate your current environment first"
         return 1
     fi
-
     typeset -aU venvs
-
     if [[ "${#@}" -eq 1 ]]; then
         venvs+="${1%/*}"
     else
@@ -16,7 +13,6 @@ activate() {
             fi
         done
     fi
-
     if [[ "${#venvs}" -eq 1 ]]; then
         source "${venvs[@]:0}/bin/activate"
         return 0
@@ -44,11 +40,8 @@ function set_termtitle_preexec() {
     first_arg=${2%% *}
     if command -v ${first_arg} > /dev/null 2>&1 && [[ ! ${first_arg} =~ ^(${PROMPT_NO_HIJACK_TITLE//,/|})$ ]]; then
         comm=${1}
-
         if [[ "$PWD" != "$HOME" ]]; then
-
             if (( ${#${PWD/#$HOME/~}} + ${#comm} >= $PROMPT_TRUNCATE_AT )); then
-
                 if (( $#comm > ${PROMPT_TRUNCATE_AT} / 2 )); then
                     local _left_half _right_half
                     if (( ${PROMPT_TRUNCATE_AT} % 2 != 0 )); then
@@ -59,15 +52,11 @@ function set_termtitle_preexec() {
                     fi
                     comm[(( $_left_half + 1 )),-$_right_half]="…"
                 fi
-
                 _short_path_old=$_short_path
                 set_termtitle_pwd $(( $PROMPT_TRUNCATE_AT - ${#comm} - 3 ))
             fi
-
             print -n -- "\e]2;$m$_short_path | ${(q)comm}\a"
-
         else
-
             if (( $#comm > ${PROMPT_TRUNCATE_AT} )); then
                 local _left_half _right_half
                 if (( ${PROMPT_TRUNCATE_AT} % 2 != 0 )); then
@@ -76,10 +65,8 @@ function set_termtitle_preexec() {
                 else
                     (( _right_half = _left_half = ${PROMPT_TRUNCATE_AT} / 2 ))
                 fi
-
                 comm[(( $_left_half + 1 )),-$_right_half]="…"
             fi
-
             print -n -- '\e]2;'$m${(q)comm}'\a'
         fi
     fi
@@ -304,9 +291,7 @@ write_git_status() {
     else
         GITSTATUS=" %B$p%b"
         print -Pn -- '\x1B[s\x1B[F\x1B[${PROMPT_LENGTH}C\x1B[0K${GITSTATUS}%b\x1B[u'
-
     fi
-
 }
 
 update_git_status() {
