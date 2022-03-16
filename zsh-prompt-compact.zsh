@@ -7,6 +7,7 @@ activate() {
     if [[ "${#@}" -eq 1 ]]; then
         venvs+="${1%/*}"
     else
+        local file
         for file in ./*/pyvenv.cfg; do
             if [[ -f "$file" ]]; then
                 venvs+="${file%/*}"
@@ -179,7 +180,7 @@ function set_termtitle_pwd() {
             (( _num_of_chars_too_long = ${#length} + $num_of_elems + ${#_short_path} + 1 - ${1:-$PROMPT_TRUNCATE_AT} ))
         done
     fi
-
+    local part
     for part in "${parts[@]:1}"; do
         _short_path+=/"$part"
     done
