@@ -18,7 +18,7 @@ activate() {
         source "${venvs[@]:0}/bin/activate"
         return 0
     elif [[ "${#venvs}" -gt 1 ]]; then
-        print "More than one venv: \x1b[3m${venvs[@]##*/}\e[0m"
+        print "More than one venv: \e[3m${venvs[@]##*/}\e[0m"
         print "Use \`activate <venv>\` to activate it"
         return 1
     elif [[ "${#venvs}" -eq 0 ]]; then
@@ -100,7 +100,7 @@ function set_termtitle_precmd() {
 
 function unset_short_path_old() {
     unset _short_path_old _read_only_dir
-    [ ! -w "$PWD" ] && _read_only_dir=" ${PROMPT_READ_ONLY_ICON}"
+    [[ -w "$PWD" ]] || _read_only_dir=" ${PROMPT_READ_ONLY_ICON}"
     PROMPT_PWD=${_di_color_zsh}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$_di_color_zsh}%{$reset_color%}
 }
 
@@ -287,12 +287,9 @@ write_git_status() {
     (( PROMPT_LENGTH=${VIRTUAL_ENV:+(( ${#PROMPT_VIRTUAL_ENV} + 1))} + ${#PROMPT_NVM} + ${#_read_only_dir} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~}))
     if (( PROMPT_LENGTH + GITSTATUS_PROMPT_LEN  > COLUMNS )); then
         ((PROMPT_LENGTH= COLUMNS - GITSTATUS_PROMPT_LEN - 1))
-        GITSTATUS=" %B$p%b"
-        print -Pn -- '\x1B[s\x1B[F\x1B[${PROMPT_LENGTH}C\x1B[0K${GITSTATUS}%b\x1B[u'
-    else
-        GITSTATUS=" %B$p%b"
-        print -Pn -- '\x1B[s\x1B[F\x1B[${PROMPT_LENGTH}C\x1B[0K${GITSTATUS}%b\x1B[u'
     fi
+    GITSTATUS=" %B$p%b"
+    print -Pn -- '\e[s\e[F\e[${PROMPT_LENGTH}C\e[0K${GITSTATUS}%b\e[u'
 }
 
 update_git_status() {
@@ -313,7 +310,7 @@ update_git_status_wrapper() {
 }
 
 preprompt() {
-    [ ! -w "$PWD" ] && _read_only_dir=" ${PROMPT_READ_ONLY_ICON}"
+    [[ -w "$PWD" ]] || _read_only_dir=" ${PROMPT_READ_ONLY_ICON}"
     gitstatus_query -t -0 -c update_git_status 'MY'
     [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
     [[ $VIRTUAL_ENV ]] && PROMPT_VIRTUAL_ENV=" 🐍${VIRTUAL_ENV##/*/}"
@@ -381,9 +378,9 @@ function setup() {
     export PROMPT_EOL_MARK='%F{1}❮❮❮%f'
 
     PROMPT=$'${PROMPT_PWD}%F{fg_default_code}'
-    PROMPT+=$'${_read_only_dir:+\x1b[38;5;18m$_read_only_dir}${EXEC_TIME:+\x1b[35m$EXEC_TIME}'
-    PROMPT+=$'${VIRTUAL_ENV:+\x1b[32m${PROMPT_VIRTUAL_ENV}}'
-    PROMPT+=$'${NVM_BIN:+\x1b[33m${PROMPT_NVM}}'
+    PROMPT+=$'${_read_only_dir:+\e[38;5;18m$_read_only_dir}${EXEC_TIME:+\e[35m$EXEC_TIME}'
+    PROMPT+=$'${VIRTUAL_ENV:+\e[32m${PROMPT_VIRTUAL_ENV}}'
+    PROMPT+=$'${NVM_BIN:+\e[33m${PROMPT_NVM}}'
     PROMPT+='${GITSTATUS:+$GITSTATUS}%f'
     PROMPT+=$'\n'
 
