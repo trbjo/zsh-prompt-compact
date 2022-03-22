@@ -333,12 +333,22 @@ function ssh() {
     fi
 }
 
+prepare_gitstatus() {
+    unset ZSH_AUTOSUGGEST_USE_ASYNC
+    add-zsh-hook -d precmd prepare_gitstatus
+}
+
 start_gitstatus() {
+    add-zsh-hook -d preexec start_gitstatus
     # Start gitstatusd instance with name "MY". The same name is passed to
     # gitstatus_query in gitstatus_update_changes_only. The flags with -1 as values
     # enable staged, unstaged, conflicted and untracked counters.
     gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
-    precmd_functions=(${precmd_functions:#start_gitstatus})
+
+    # This is to fix a bug with zsh-autosuggestions, where both that and gitstatus
+    # will try to run asynchronously. We unset it for the first run and then everything
+    # should be good.
+    typeset -g ZSH_AUTOSUGGEST_USE_ASYNC=
 }
 
 function setup() {
@@ -362,7 +372,8 @@ function setup() {
     [[ $PROMPT_NEWLINE_SEPARATOR != 0 ]] && PROMPT_NEWLINE_SEPARATOR=1 || unset PROMPT_NEWLINE_SEPARATOR
 
     autoload -Uz add-zsh-hook
-    add-zsh-hook precmd start_gitstatus
+    add-zsh-hook preexec start_gitstatus
+    add-zsh-hook precmd prepare_gitstatus
     add-zsh-hook preexec control_git_sideeffects_preexec
     add-zsh-hook precmd preprompt
 
