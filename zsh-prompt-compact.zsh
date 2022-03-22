@@ -333,6 +333,14 @@ function ssh() {
     fi
 }
 
+start_gitstatus() {
+    # Start gitstatusd instance with name "MY". The same name is passed to
+    # gitstatus_query in gitstatus_update_changes_only. The flags with -1 as values
+    # enable staged, unstaged, conflicted and untracked counters.
+    gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
+    precmd_functions=(${precmd_functions:#start_gitstatus})
+}
+
 function setup() {
     # disable python's built in manipulation of the prompt in favor of our own
     export VIRTUAL_ENV_DISABLE_PROMPT=1
@@ -353,12 +361,8 @@ function setup() {
 
     [[ $PROMPT_NEWLINE_SEPARATOR != 0 ]] && PROMPT_NEWLINE_SEPARATOR=1 || unset PROMPT_NEWLINE_SEPARATOR
 
-    # Start gitstatusd instance with name "MY". The same name is passed to
-    # gitstatus_query in gitstatus_update_changes_only. The flags with -1 as values
-    # enable staged, unstaged, conflicted and untracked counters.
-    gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
-
     autoload -Uz add-zsh-hook
+    add-zsh-hook precmd start_gitstatus
     add-zsh-hook preexec control_git_sideeffects_preexec
     add-zsh-hook precmd preprompt
 
