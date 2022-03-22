@@ -311,7 +311,7 @@ update_git_status_wrapper() {
 
 preprompt() {
     [[ -w "$PWD" ]] || _read_only_dir=" ${PROMPT_READ_ONLY_ICON}"
-    gitstatus_query -t -0 -c update_git_status 'MY'
+    [[ "$PWD" != "$HOME" ]] && gitstatus_query -t -0 -c update_git_status 'MY' 2> /dev/null
     [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
     [[ $VIRTUAL_ENV ]] && PROMPT_VIRTUAL_ENV=" 🐍${VIRTUAL_ENV##/*/}"
 
