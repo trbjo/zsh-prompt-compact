@@ -83,7 +83,7 @@ function set_termtitle_precmd() {
 
     if [[ $__oldres != $__res ]]; then
         if [[ $__res != 0 ]]; then
-            set_termtitle_pwd (( $PROMPT_TRUNCATE_AT - ${#PROMPT_ERR_ICON} - 1 ))
+            set_termtitle_pwd $(( $PROMPT_TRUNCATE_AT - ${#PROMPT_ERR_ICON} - 1 ))
         else
             set_termtitle_pwd
         fi
