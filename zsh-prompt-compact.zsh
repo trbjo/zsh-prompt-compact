@@ -297,7 +297,7 @@ update_git_status() {
     [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_RESULT_VALID_FOR} ]] && \
     _repo_up_to_date[$VCS_STATUS_WORKDIR]=false local out_of_date=1
     write_git_status
-    [[ $PROMPT_GIT_FETCH_REMOTE == true ]] || return 0
+    (( ${+PROMPT_GIT_PROHIBIT_REMOTE} )) && return 0
     [[ $out_of_date ]] || return 0
     _last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
     { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=$GIT_CONNECT_TIMEOUT -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &&\
@@ -321,7 +321,7 @@ preprompt() {
         gitstatus_query -t -0 -c update_git_status 'MY'
         [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
         [[ $VIRTUAL_ENV ]] && PROMPT_VIRTUAL_ENV=" 🐍${VIRTUAL_ENV##/*/}"
-        [[ $PROMPT_NEWLINE_SEPARATOR ]] && print
+        (( ${+NO_PROMPT_NEWLINE_SEPARATOR} )) || print
     }
 }
 
