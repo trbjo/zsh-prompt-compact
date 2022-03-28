@@ -39,7 +39,7 @@ activate() {
 
 function set_termtitle_preexec() {
     first_arg=${2%% *}
-    if command -v ${first_arg} > /dev/null 2>&1 && [[ ! ${first_arg} =~ ^(${PROMPT_NO_HIJACK_TITLE//,/|})$ ]]; then
+    if command -v ${first_arg} > /dev/null 2>&1 && [[ ! ${first_arg} =~ ^(${PROMPT_NO_SET_TITLE//,/|})$ ]]; then
         comm=${1}
         if [[ "$PWD" != "$HOME" ]]; then
             if (( ${#${PWD/#$HOME/~}} + ${#comm} >= $PROMPT_TRUNCATE_AT )); then
@@ -101,7 +101,7 @@ function set_termtitle_precmd() {
 function unset_short_path_old() {
     unset _short_path_old _read_only_dir
     [[ -w "$PWD" ]] || _read_only_dir=" ${PROMPT_READ_ONLY_ICON}"
-    PROMPT_PWD=${_di_color_zsh}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$_di_color_zsh}%{$reset_color%}
+    PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$PROMPT_DIR_COLOR}%{$reset_color%}
 }
 
 function set_termtitle_pwd() {
@@ -363,11 +363,19 @@ function setup() {
     (( $GIT_FETCH_RESULT_VALID_FOR < 2 )) && GIT_FETCH_RESULT_VALID_FOR=2
     GIT_CONNECT_TIMEOUT=$((GIT_FETCH_RESULT_VALID_FOR -1))
 
-    PROMPT_NO_HIJACK_TITLE="${PROMPT_NO_HIJACK_TITLE:-cd,clear,ls,stat,rmdir,mkdir,which,where,echo,print,true,false}"
-    PROMPT_READ_ONLY_ICON="${PROMPT_READ_ONLY_ICON:-RO}"
-    PROMPT_ERR_ICON="${PROMPT_ERR_ICON:-X}"
-    PROMPT_SUCCESS_ICON="${PROMPT_SUCCESS_ICON:-❯}"
+    PROMPT_NO_SET_TITLE="${PROMPT_NO_SET_TITLE:-cd,clear,ls,stat,rmdir,mkdir,which,where,echo,print,true,false,_zlua}"
     PROMPT_TRUNCATE_AT="${PROMPT_TRUNCATE_AT:-40}"
+
+    # set fancy icons
+    if (( ${+PROMPT_FANCY_ICONS} )) && [[ $TERM != 'linux' ]]; then
+        PROMPT_READ_ONLY_ICON="${PROMPT_READ_ONLY_ICON:-}"
+        PROMPT_ERR_ICON="${PROMPT_ERR_ICON:-🞮}"
+        PROMPT_SUCCESS_ICON="${PROMPT_SUCCESS_ICON:-❯}"
+    else
+        PROMPT_READ_ONLY_ICON="${PROMPT_READ_ONLY_ICON:-RO}"
+        PROMPT_ERR_ICON="${PROMPT_ERR_ICON:-X}"
+        PROMPT_SUCCESS_ICON="${PROMPT_SUCCESS_ICON:-%%}"
+    fi
 
     [[ $PROMPT_NEWLINE_SEPARATOR != 0 ]] && PROMPT_NEWLINE_SEPARATOR=1 || unset PROMPT_NEWLINE_SEPARATOR
 
@@ -384,7 +392,13 @@ function setup() {
         set_termtitle_pwd
     fi
 
-    PROMPT_PWD=${_di_color_zsh}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$_di_color_zsh}%{$reset_color%}
+    # this has an optional dependency, namely the _raw_to_zsh_color function from
+    # trobjo/zsh-common-functions that will color the path in the same colors as
+    # the directory color set in LS_COLORS.
+    (( ${+functions[_raw_to_zsh_color]} )) && PROMPT_DIR_COLOR=$(_raw_to_zsh_color $_di_color_raw) ||\
+    PROMPT_DIR_COLOR=${PROMPT_DIR_COLOR:-'%F{4}'}
+
+    PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$PROMPT_DIR_COLOR}%{$reset_color%}
     add-zsh-hook chpwd unset_short_path_old
 
     # Enable/disable the right prompt options.
