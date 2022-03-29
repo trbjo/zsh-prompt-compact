@@ -351,14 +351,16 @@ function ssh() {
     PROMPT_TRUNCATE_AT="${PROMPT_TRUNCATE_AT:-40}"
 
     # set fancy icons
-    if (( ${+PROMPT_FANCY_ICONS} )) && [[ $TERM != 'linux' ]]; then
+    if (( ! ${+NO_PROMPT_FANCY_ICONS} )) && [[ $TERM != 'linux' ]]; then
         PROMPT_READ_ONLY_ICON="${PROMPT_READ_ONLY_ICON:-}"
         PROMPT_ERR_ICON="${PROMPT_ERR_ICON:-🞮}"
         PROMPT_SUCCESS_ICON="${PROMPT_SUCCESS_ICON:-❯}"
+        PROMPT_EOL_MARK='%F{1}❮❮❮%f'
     else
         PROMPT_READ_ONLY_ICON="${PROMPT_READ_ONLY_ICON:-RO}"
         PROMPT_ERR_ICON="${PROMPT_ERR_ICON:-X}"
         PROMPT_SUCCESS_ICON="${PROMPT_SUCCESS_ICON:-%%}"
+        PROMPT_EOL_MARK='%%'
     fi
 
     [[ $PROMPT_NEWLINE_SEPARATOR != 0 ]] && PROMPT_NEWLINE_SEPARATOR=1 || unset PROMPT_NEWLINE_SEPARATOR
@@ -386,7 +388,6 @@ function ssh() {
     # Enable/disable the right prompt options.
     setopt no_prompt_bang prompt_percent prompt_subst
 
-    export PROMPT_EOL_MARK='%F{1}❮❮❮%f'
     # Start gitstatusd instance with name "MY". The same name is passed to
     # gitstatus_query in gitstatus_update_changes_only. The flags with -1 as values
     # enable staged, unstaged, conflicted and untracked counters.
