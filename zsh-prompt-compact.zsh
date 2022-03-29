@@ -293,14 +293,14 @@ write_git_status() {
 }
 
 update_git_status() {
-    [[ $VCS_STATUS_RESULT == 'ok-async' ]] || return 0
-    [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${GIT_FETCH_RESULT_VALID_FOR} ]] && \
+    [[ $VCS_STATUS_RESULT == 'ok-async' ]] || { unset GITSTATUS_OLD && return 0 }
+    [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${_git_fetch_result_valid_for} ]] && \
     _repo_up_to_date[$VCS_STATUS_WORKDIR]=false local out_of_date=1
     write_git_status
     (( ${+PROMPT_GIT_PROHIBIT_REMOTE} )) && return 0
     [[ $out_of_date ]] || return 0
     _last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
-    { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=$GIT_CONNECT_TIMEOUT -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &&\
+    { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=$_git_connect_timeout -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &&\
     gitstatus_query -t -0 -c write_git_status_after_fetch "MY" } &!
     _git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
 }
@@ -359,9 +359,9 @@ function setup() {
     typeset -gA _git_fetch_pwds
     typeset -gA _repo_up_to_date
 
-    GIT_FETCH_RESULT_VALID_FOR=${GIT_FETCH_RESULT_VALID_FOR:-60}
-    (( $GIT_FETCH_RESULT_VALID_FOR < 2 )) && GIT_FETCH_RESULT_VALID_FOR=2
-    GIT_CONNECT_TIMEOUT=$((GIT_FETCH_RESULT_VALID_FOR -1))
+    _git_fetch_result_valid_for=${_git_fetch_result_valid_for:-60}
+    (( $_git_fetch_result_valid_for < 2 )) && _git_fetch_result_valid_for=2
+    _git_connect_timeout=$((_git_fetch_result_valid_for -1))
 
     PROMPT_NO_SET_TITLE="${PROMPT_NO_SET_TITLE:-cd,clear,ls,stat,rmdir,mkdir,which,where,echo,print,true,false,_zlua}"
     PROMPT_TRUNCATE_AT="${PROMPT_TRUNCATE_AT:-40}"
