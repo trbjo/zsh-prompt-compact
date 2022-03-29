@@ -188,6 +188,7 @@ function set_termtitle_pwd() {
 }
 
 function control_git_sideeffects_preexec() {
+    OLDPROMPT="${(e)PROMPT}"
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
     if [[ ${_git_fetch_pwds[${VCS_STATUS_WORKDIR}]:-0} != 0 ]]\
     && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]
@@ -338,6 +339,7 @@ function ssh() {
     # disable python's built in manipulation of the prompt in favor of our own
     export VIRTUAL_ENV_DISABLE_PROMPT=1
 
+    typeset -gx OLDPROMPT
     typeset -gA _last_checks
     typeset -gA _git_fetch_pwds
     typeset -gA _repo_up_to_date
