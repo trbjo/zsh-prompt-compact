@@ -351,7 +351,7 @@ start_gitstatus() {
     typeset -g ZSH_AUTOSUGGEST_USE_ASYNC=
 }
 
-function setup() {
+() {
     # disable python's built in manipulation of the prompt in favor of our own
     export VIRTUAL_ENV_DISABLE_PROMPT=1
 
@@ -426,5 +426,3 @@ function setup() {
     fi
     PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
 }
-
-setup
