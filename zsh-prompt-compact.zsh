@@ -365,7 +365,16 @@ function ssh() {
 
     [[ $PROMPT_NEWLINE_SEPARATOR != 0 ]] && PROMPT_NEWLINE_SEPARATOR=1 || unset PROMPT_NEWLINE_SEPARATOR
 
+    # this has an optional dependency, namely the _raw_to_zsh_color function from
+    # trobjo/zsh-common-functions that will color the path in the same colors as
+    # the directory color set in LS_COLORS.
+    (( ${+functions[_raw_to_zsh_color]} )) && PROMPT_DIR_COLOR=$(_raw_to_zsh_color $_di_color_raw) ||\
+    PROMPT_DIR_COLOR=${PROMPT_DIR_COLOR:-'%F{4}'}
+    PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$PROMPT_DIR_COLOR}%{$reset_color%}
+
     autoload -Uz add-zsh-hook
+
+    add-zsh-hook chpwd unset_short_path_old
     add-zsh-hook preexec control_git_sideeffects_preexec
     add-zsh-hook precmd preprompt
 
@@ -375,15 +384,6 @@ function ssh() {
         add-zsh-hook chpwd set_termtitle_pwd
         set_termtitle_pwd
     fi
-
-    # this has an optional dependency, namely the _raw_to_zsh_color function from
-    # trobjo/zsh-common-functions that will color the path in the same colors as
-    # the directory color set in LS_COLORS.
-    (( ${+functions[_raw_to_zsh_color]} )) && PROMPT_DIR_COLOR=$(_raw_to_zsh_color $_di_color_raw) ||\
-    PROMPT_DIR_COLOR=${PROMPT_DIR_COLOR:-'%F{4}'}
-
-    PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$PROMPT_DIR_COLOR}%{$reset_color%}
-    add-zsh-hook chpwd unset_short_path_old
 
     # Enable/disable the right prompt options.
     setopt no_prompt_bang prompt_percent prompt_subst
