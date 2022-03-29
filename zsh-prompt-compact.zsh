@@ -188,7 +188,7 @@ function set_termtitle_pwd() {
 }
 
 function control_git_sideeffects_preexec() {
-    OLDPROMPT="${(e)PROMPT/ \%B\%2F/ %B%6F}"
+    OLDPROMPT="${${(e)PROMPT}/ \%B\%2F/ %B%6F}"
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
     if [[ ${_git_fetch_pwds[${VCS_STATUS_WORKDIR}]:-0} != 0 ]]\
     && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]
