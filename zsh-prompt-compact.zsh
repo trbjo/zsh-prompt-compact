@@ -333,23 +333,6 @@ function ssh() {
     fi
 }
 
-prepare_gitstatus() {
-    unset ZSH_AUTOSUGGEST_USE_ASYNC
-    add-zsh-hook -d precmd prepare_gitstatus
-}
-
-start_gitstatus() {
-    add-zsh-hook -d preexec start_gitstatus
-    # Start gitstatusd instance with name "MY". The same name is passed to
-    # gitstatus_query in gitstatus_update_changes_only. The flags with -1 as values
-    # enable staged, unstaged, conflicted and untracked counters.
-    gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
-
-    # This is to fix a bug with zsh-autosuggestions, where both that and gitstatus
-    # will try to run asynchronously. We unset it for the first run and then everything
-    # should be good.
-    typeset -g ZSH_AUTOSUGGEST_USE_ASYNC=
-}
 
 () {
     # disable python's built in manipulation of the prompt in favor of our own
@@ -380,8 +363,6 @@ start_gitstatus() {
     [[ $PROMPT_NEWLINE_SEPARATOR != 0 ]] && PROMPT_NEWLINE_SEPARATOR=1 || unset PROMPT_NEWLINE_SEPARATOR
 
     autoload -Uz add-zsh-hook
-    add-zsh-hook preexec start_gitstatus
-    add-zsh-hook precmd prepare_gitstatus
     add-zsh-hook preexec control_git_sideeffects_preexec
     add-zsh-hook precmd preprompt
 
@@ -405,6 +386,10 @@ start_gitstatus() {
     setopt no_prompt_bang prompt_percent prompt_subst
 
     export PROMPT_EOL_MARK='%F{1}❮❮❮%f'
+    # Start gitstatusd instance with name "MY". The same name is passed to
+    # gitstatus_query in gitstatus_update_changes_only. The flags with -1 as values
+    # enable staged, unstaged, conflicted and untracked counters.
+    gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 
     PROMPT=$'${PROMPT_PWD}%F{fg_default_code}'
     PROMPT+=$'${_read_only_dir:+\e[38;5;18m$_read_only_dir}${EXEC_TIME:+\e[35m$EXEC_TIME}'
