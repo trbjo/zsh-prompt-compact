@@ -294,7 +294,7 @@ write_git_status() {
 }
 
 update_git_status() {
-    [[ $VCS_STATUS_RESULT == 'ok-async' ]] || { unset GITSTATUS_OLD && return 0 }
+    [[ $VCS_STATUS_RESULT == 'ok-async' ]] || return 0
     [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${_git_fetch_result_valid_for} ]] && \
     _repo_up_to_date[$VCS_STATUS_WORKDIR]=false local out_of_date=1
     write_git_status
@@ -333,7 +333,6 @@ function ssh() {
         /usr/bin/ssh "$@"
     fi
 }
-
 
 () {
     # disable python's built in manipulation of the prompt in favor of our own
