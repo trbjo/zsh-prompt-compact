@@ -56,7 +56,7 @@ function set_termtitle_preexec() {
                 _short_path_old=$_short_path
                 set_termtitle_pwd $(( $PROMPT_TRUNCATE_AT - ${#comm} - 3 ))
             fi
-            print -n -- "\e]2;$m$_short_path | ${(q)comm}\a"
+            print -n -- "\e]2;$_ssh$_short_path | ${(q)comm}\a"
         else
             if (( $#comm > ${PROMPT_TRUNCATE_AT} )); then
                 local _left_half _right_half
@@ -68,7 +68,7 @@ function set_termtitle_preexec() {
                 fi
                 comm[(( $_left_half + 1 )),-$_right_half]="…"
             fi
-            print -n -- '\e]2;'$m${(q)comm}'\a'
+            print -n -- '\e]2;'$_ssh${(q)comm}'\a'
         fi
     fi
 }
@@ -90,9 +90,9 @@ function set_termtitle_precmd() {
     fi
 
     if [[ $__res != 0 ]]; then
-        print -n -- "\e]2;$m${_short_path} ${PROMPT_ERR_ICON}\a"
+        print -n -- "\e]2;$_ssh${_short_path} ${PROMPT_ERR_ICON}\a"
     else
-        print -n -- "\e]2;$m${_short_path}\a"
+        print -n -- "\e]2;$_ssh${_short_path}\a"
     fi
 
     __oldres=$__res
@@ -406,9 +406,9 @@ function ssh() {
         fi
         PROMPT+="%B[%b$PROMPT_SSH_NAME%B]%b "
         if (( $#PROMPT_SSH_NAME > 15 )); then
-            m="[${PROMPT_SSH_NAME:0:7}…${PROMPT_SSH_NAME: -7}] "
+            typeset -gx _ssh="[${PROMPT_SSH_NAME:0:7}…${PROMPT_SSH_NAME: -7}] "
         else
-            m="[${PROMPT_SSH_NAME}] "
+            typeset -gx _ssh="[${PROMPT_SSH_NAME}] "
         fi
     fi
     PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
