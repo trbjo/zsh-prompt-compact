@@ -105,7 +105,7 @@ function unset_short_path_old() {
 }
 
 function set_termtitle_pwd() {
-    typeset -g _short_path
+    typeset -gx _short_path
     typeset -a parts
 
     if [[ "$PWD" == $HOME* ]]; then
