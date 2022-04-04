@@ -315,6 +315,7 @@ preprompt() {
     [[ "$PWD" != "$HOME" ]] && gitstatus_query -t -0 -c update_git_status 'MY' 2> /dev/null
     [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
     [[ $VIRTUAL_ENV ]] && PROMPT_VIRTUAL_ENV=" 🐍${VIRTUAL_ENV##/*/}"
+    PROMPT_EOL_MARK="$prompt_eol"
 
     preprompt() {
         check_cmd_exec_time
@@ -355,13 +356,14 @@ function ssh() {
         PROMPT_READ_ONLY_ICON="${PROMPT_READ_ONLY_ICON:-}"
         PROMPT_ERR_ICON="${PROMPT_ERR_ICON:-🞮}"
         PROMPT_SUCCESS_ICON="${PROMPT_SUCCESS_ICON:-❯}"
-        PROMPT_EOL_MARK='%F{1}❮❮❮%f'
+        prompt_eol='%F{1}❮❮❮%f'
     else
         PROMPT_READ_ONLY_ICON="${PROMPT_READ_ONLY_ICON:-RO}"
         PROMPT_ERR_ICON="${PROMPT_ERR_ICON:-X}"
         PROMPT_SUCCESS_ICON="${PROMPT_SUCCESS_ICON:-%%}"
-        PROMPT_EOL_MARK='%%'
+        prompt_eol='%%'
     fi
+    PROMPT_EOL_MARK=''
 
     [[ $PROMPT_NEWLINE_SEPARATOR != 0 ]] && PROMPT_NEWLINE_SEPARATOR=1 || unset PROMPT_NEWLINE_SEPARATOR
 
@@ -374,16 +376,16 @@ function ssh() {
 
     autoload -Uz add-zsh-hook
 
-    add-zsh-hook chpwd unset_short_path_old
-    add-zsh-hook preexec control_git_sideeffects_preexec
-    add-zsh-hook precmd preprompt
-
     if [[ -z $PROHIBIT_TERM_TITLE ]]; then
         add-zsh-hook preexec set_termtitle_preexec
         add-zsh-hook precmd set_termtitle_precmd
         add-zsh-hook chpwd set_termtitle_pwd
         set_termtitle_pwd
     fi
+
+    add-zsh-hook chpwd unset_short_path_old
+    add-zsh-hook preexec control_git_sideeffects_preexec
+    add-zsh-hook precmd preprompt
 
     # Enable/disable the right prompt options.
     setopt no_prompt_bang prompt_percent prompt_subst
