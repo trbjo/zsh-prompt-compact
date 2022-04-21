@@ -290,7 +290,7 @@ write_git_status() {
         ((PROMPT_LENGTH= COLUMNS - GITSTATUS_PROMPT_LEN - 1))
     fi
     GITSTATUS=" %B$p%b"
-    print -Pn -- '\e[s\e[F\e[${PROMPT_LENGTH}C\e[0K${GITSTATUS}%b\e[u'
+    print -Pn -- '\e7\e[F\e[${PROMPT_LENGTH}C\e[0K${GITSTATUS}%b\e8'
 }
 
 update_git_status() {
