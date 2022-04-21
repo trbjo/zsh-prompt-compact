@@ -329,7 +329,7 @@ preprompt() {
 
 function ssh() {
     if [[ "${#@}" -eq 1 ]] && [[ ! $1 =~ [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$ ]]; then
-        /usr/bin/ssh "$1" -t env PROMPT_SSH_NAME="$1" EXTRA_SSH_ENV="${(q)EXTRA_SSH_ENV}" zsh -l
+        /usr/bin/ssh "$1" -t env PROMPT_SSH_NAME="$1" EXTRA_SSH_ENV="${(q)EXTRA_SSH_ENV}" $SHELL -l
     else
         /usr/bin/ssh "$@"
     fi
