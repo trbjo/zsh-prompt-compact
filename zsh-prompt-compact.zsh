@@ -374,6 +374,19 @@ function ssh() {
     PROMPT_DIR_COLOR=${PROMPT_DIR_COLOR:-'%F{4}'}
     PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$PROMPT_DIR_COLOR}%{$reset_color%}
 
+    autoload -Uz add-zsh-hook
+
+    if [[ -z $PROHIBIT_TERM_TITLE ]]; then
+        add-zsh-hook preexec set_termtitle_preexec
+        add-zsh-hook precmd set_termtitle_precmd
+        add-zsh-hook chpwd set_termtitle_pwd
+        set_termtitle_pwd
+    fi
+
+    add-zsh-hook chpwd unset_short_path_old
+    add-zsh-hook preexec control_git_sideeffects_preexec
+    add-zsh-hook precmd preprompt
+
     # Enable/disable the right prompt options.
     setopt no_prompt_bang prompt_percent prompt_subst
 
@@ -401,18 +414,4 @@ function ssh() {
         fi
     fi
     PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
-
-    autoload -Uz add-zsh-hook
-
-    if [[ -z $PROHIBIT_TERM_TITLE ]]; then
-        add-zsh-hook preexec set_termtitle_preexec
-        add-zsh-hook precmd set_termtitle_precmd
-        add-zsh-hook chpwd set_termtitle_pwd
-        set_termtitle_pwd
-        print -n -- "\e]2;$_ssh${_short_path}\a"
-    fi
-
-    add-zsh-hook chpwd unset_short_path_old
-    add-zsh-hook preexec control_git_sideeffects_preexec
-    add-zsh-hook precmd preprompt
 }
