@@ -287,7 +287,7 @@ write_git_status() {
     # print $GITSTATUS_PROMPT_LEN
     (( PROMPT_LENGTH=${VIRTUAL_ENV:+(( ${#PROMPT_VIRTUAL_ENV} + 1))} + ${#PROMPT_NVM} + ${#_read_only_dir} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~}))
     if (( PROMPT_LENGTH + GITSTATUS_PROMPT_LEN  > COLUMNS )); then
-        ((PROMPT_LENGTH= COLUMNS - GITSTATUS_PROMPT_LEN - 1))
+        (( PROMPT_LENGTH = COLUMNS - GITSTATUS_PROMPT_LEN - 1 ))
     fi
     GITSTATUS=" %B$p%b"
     print -Pn -- '\e7\e[F\e[${PROMPT_LENGTH}C\e[0K${GITSTATUS}%b\e8'
