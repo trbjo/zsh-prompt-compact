@@ -99,9 +99,11 @@ function set_termtitle_precmd() {
 }
 
 function unset_short_path_old() {
-    unset _short_path_old _read_only_dir GITSTATUS
-    [[ -w "$PWD" ]] || _read_only_dir=" ${PROMPT_READ_ONLY_ICON}"
-    PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$PROMPT_DIR_COLOR}%{$reset_color%}
+    if [[ "$PWD" != "$OLDPWD" ]]; then
+        unset _short_path_old _read_only_dir GITSTATUS
+        [[ -w "$PWD" ]] || _read_only_dir=" ${PROMPT_READ_ONLY_ICON}"
+        PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$PROMPT_DIR_COLOR}%{$reset_color%}
+    fi
 }
 
 function set_termtitle_pwd() {
@@ -284,13 +286,12 @@ write_git_status() {
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
     GITSTATUS_PROMPT_LEN="${(m)#${${p//\%\%/x}//\%(f|<->F)}}"
-    # print $GITSTATUS_PROMPT_LEN
     (( PROMPT_LENGTH=${VIRTUAL_ENV:+(( ${#PROMPT_VIRTUAL_ENV} + 1))} + ${#PROMPT_NVM} + ${#_read_only_dir} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~} ))
     if (( PROMPT_LENGTH + GITSTATUS_PROMPT_LEN  > COLUMNS )); then
         (( PROMPT_LENGTH = COLUMNS - GITSTATUS_PROMPT_LEN - 1 ))
     fi
-    GITSTATUS=" %B$p%b"
-    print -Pn -- '\e7\e[F\e[${PROMPT_LENGTH}C\e[0K${GITSTATUS}%b\e8'
+    export GITSTATUS=" %B$p%b"
+    print -Pn -- '\e7\e[F\e[${PROMPT_LENGTH}C${GITSTATUS}\e[0K%b\e8'
 }
 
 update_git_status() {
@@ -306,10 +307,6 @@ update_git_status() {
     _git_fetch_pwds[${VCS_STATUS_WORKDIR}]="$!"
 }
 
-update_git_status_wrapper() {
-    gitstatus_query -t -0 -c update_git_status 'MY'
-}
-
 preprompt() {
     [[ -w "$PWD" ]] || _read_only_dir=" ${PROMPT_READ_ONLY_ICON}"
     [[ "$PWD" != "$HOME" ]] && gitstatus_query -t -0 -c update_git_status 'MY' 2> /dev/null
@@ -323,7 +320,6 @@ preprompt() {
         gitstatus_query -t -0 -c update_git_status 'MY'
         [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
         [[ $VIRTUAL_ENV ]] && PROMPT_VIRTUAL_ENV=" 🐍${VIRTUAL_ENV##/*/}"
-        (( ${+NO_PROMPT_NEWLINE_SEPARATOR} )) || print
     }
 }
 
