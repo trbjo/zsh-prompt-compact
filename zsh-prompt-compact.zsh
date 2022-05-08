@@ -327,7 +327,7 @@ function ssh() {
 # On limited space we use a two line prompt, else one line
 prompt_split_lines() {
     typeset zero='%([BSUbfksu]|([FK]|){*})'
-    mystr=$'${PROMPT_PWD}${PROMPT_READ_ONLY_DIR}${exec_time}${prompt_virtual_env}${prompt_nvm}${GITSTATUS}'
+    local mystr=$'${PROMPT_PWD}${PROMPT_READ_ONLY_DIR}${exec_time}${prompt_virtual_env}${prompt_nvm}${GITSTATUS}${PROMPT_SSH_NAME:+$PROMPT_SSH_NAME  }'
     typeset -gx res=${#${(S%%)${(e)mystr}//$~zero/}}
     if (( res > COLUMNS / 3 )); then
         PROMPT_NEWLINE_SEP=$'\n'
