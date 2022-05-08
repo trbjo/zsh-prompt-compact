@@ -403,7 +403,7 @@ prompt_split_lines() {
     PROMPT+='$exec_time'
     PROMPT+='$prompt_virtual_env'
     PROMPT+='$prompt_nvm'
-    PROMPT+='${GITSTATUS+%B${GITSTATUS}%b%f}'
+    PROMPT+='${GITSTATUS+%B${GITSTATUS}%b}%f'
 
     prompt_split_lines
     PROMPT+='${PROMPT_NEWLINE_SEP}'
