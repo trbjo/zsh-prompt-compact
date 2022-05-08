@@ -100,9 +100,9 @@ function set_termtitle_precmd() {
 
 function unset_short_path_old() {
     if [[ "$PWD" != "$OLDPWD" ]]; then
-        unset _short_path_old _read_only_dir GITSTATUS
-        [[ -w "$PWD" ]] || _read_only_dir=" ${PROMPT_READ_ONLY_ICON}"
-        PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$PROMPT_DIR_COLOR}%{$reset_color%}
+        unset _short_path_old PROMPT_READ_ONLY_DIR GITSTATUS
+        [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}"
+        PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$PROMPT_DIR_COLOR}%{$reset_color%}%F{fg_default_code}
     fi
 }
 
@@ -190,7 +190,7 @@ function set_termtitle_pwd() {
 }
 
 function control_git_sideeffects_preexec() {
-    OLDPROMPT="${${(e)PROMPT}/ \%B\%2F/ %B%6F}"
+    unset exec_time
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
     if [[ ${_git_fetch_pwds[${VCS_STATUS_WORKDIR}]:-0} != 0 ]]\
     && [[ $2 =~ git\ (.*\ )?(pull|push|fetch)(\ .*)?$ ]]
@@ -200,31 +200,24 @@ function control_git_sideeffects_preexec() {
     fi
 }
 
+# Stores (into exec_time) the execution
+# time of the last command if set threshold was exceeded.
 # taken from Sindre Sorhus
 # https://github.com/sindresorhus/pretty-time-zsh
-human_time_to_var() {
-    local human total_seconds=$1 var=$2
-    local days=$(( total_seconds / 60 / 60 / 24 ))
-    local hours=$(( total_seconds / 60 / 60 % 24 ))
-    local minutes=$(( total_seconds / 60 % 60 ))
-    local seconds=$(( total_seconds % 60 ))
-    (( days > 0 )) && human+="${days}d "
-    (( hours > 0 )) && human+="${hours}h "
-    (( minutes > 0 )) && human+="${minutes}m "
-    human+="${seconds}s"
-
-    # Store human readable time in a variable as specified by the caller
-    typeset -g "${var}"=" ${human}"
-}
-
-# Stores (into EXEC_TIME) the execution
-# time of the last command if set threshold was exceeded.
 check_cmd_exec_time() {
     integer elapsed
     (( elapsed = EPOCHSECONDS - ${cmd_exec_timestamp:-$EPOCHSECONDS} ))
-    typeset -g EXEC_TIME=
     (( elapsed > ${PURE_CMD_MAX_EXEC_TIME:-5} )) && {
-        human_time_to_var $elapsed "EXEC_TIME"
+        local human total_seconds=$elapsed
+        local days=$(( total_seconds / 60 / 60 / 24 ))
+        local hours=$(( total_seconds / 60 / 60 % 24 ))
+        local minutes=$(( total_seconds / 60 % 60 ))
+        local seconds=$(( total_seconds % 60 ))
+        (( days > 0 )) && human+="${days}d "
+        (( hours > 0 )) && human+="${hours}h "
+        (( minutes > 0 )) && human+="${minutes}m "
+        human+="${seconds}s"
+        typeset -g exec_time=" %F{5}${human}"
     }
 }
 
@@ -245,16 +238,16 @@ write_git_status() {
     emulate -L zsh
 
     if [[ $_repo_up_to_date[$VCS_STATUS_WORKDIR] == true ]]; then
-        local      branch='%2F'   # green foreground
+        local      branch_color='%F{2}'   # green foreground
     else
-        local      branch='%6F'   # cyan foreground
+        local      branch_color='%F{6}'   # cyan foreground
     fi
 
-    local      clean='%4F'  # cyan foreground
-    local   modified='%3F'  # yellow foreground
-    local      added='%10F'  # green foreground
-    local  untracked='%18F' # grey foreground
-    local conflicted='%2F'  # red foreground
+    local      clean='%F{4}'  # cyan foreground
+    local   modified='%F{3}'  # yellow foreground
+    local      added='%F{10}'  # green foreground
+    local  untracked='%F{18}' # grey foreground
+    local conflicted='%F{2}'  # red foreground
 
     local p
 
@@ -270,7 +263,7 @@ write_git_status() {
     fi
 
     (( $#where > 32 )) && where[13,-13]="…"  # truncate long branch names and tags
-    p+="${branch}${where//\%/%%}"             # escape %
+    p+="${where//\%/%%}"             # escape %
 
     (( VCS_STATUS_COMMITS_BEHIND )) && p+=" ${clean}⇣${VCS_STATUS_COMMITS_BEHIND}"
     (( VCS_STATUS_COMMITS_AHEAD && !VCS_STATUS_COMMITS_BEHIND )) && p+=" "
@@ -285,13 +278,12 @@ write_git_status() {
     (( VCS_STATUS_NUM_UNSTAGED   )) && p+=" ${modified}!${VCS_STATUS_NUM_UNSTAGED}"
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
-    GITSTATUS_PROMPT_LEN="${(m)#${${p//\%\%/x}//\%(f|<->F)}}"
-    (( PROMPT_LENGTH=${VIRTUAL_ENV:+(( ${#PROMPT_VIRTUAL_ENV} + 1))} + ${#PROMPT_NVM} + ${#_read_only_dir} + ${#EXEC_TIME} + ${#${PWD}/${HOME}/~} ))
-    if (( PROMPT_LENGTH + GITSTATUS_PROMPT_LEN  > COLUMNS )); then
-        (( PROMPT_LENGTH = COLUMNS - GITSTATUS_PROMPT_LEN - 1 ))
+    if [[ ! $GITSTATUS ]] || [[ "$GITSTATUS" != " ${branch_color}$p" ]]; then
+        export GITSTATUS=" ${branch_color}$p"
+        export GITSTATUS_BLUE=" %F{6}$p"
+        prompt_split_lines
+        zle reset-prompt
     fi
-    export GITSTATUS=" %B$p%b"
-    print -Pn -- '\e7\e[F\e[${PROMPT_LENGTH}C${GITSTATUS}\e[0K%b\e8'
 }
 
 update_git_status() {
@@ -308,18 +300,19 @@ update_git_status() {
 }
 
 preprompt() {
-    [[ -w "$PWD" ]] || _read_only_dir=" ${PROMPT_READ_ONLY_ICON}"
+    [[ -w "$PWD" ]] || PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}"
     [[ "$PWD" != "$HOME" ]] && gitstatus_query -t -0 -c update_git_status 'MY' 2> /dev/null
-    [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
-    [[ $VIRTUAL_ENV ]] && PROMPT_VIRTUAL_ENV=" 🐍${VIRTUAL_ENV##/*/}"
+    [[ $NVM_BIN ]] && prompt_nvm=" %F{3}⬢ ${${NVM_BIN##*node/v}//\/bin/}"
+    [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${VIRTUAL_ENV##/*/}"
     PROMPT_EOL_MARK="$prompt_eol"
 
     preprompt() {
         check_cmd_exec_time
-        unset cmd_exec_timestamp PROMPT_NVM PROMPT_VIRTUAL_ENV
+        unset cmd_exec_timestamp prompt_nvm prompt_virtual_env
         gitstatus_query -t -0 -c update_git_status 'MY'
-        [[ $NVM_BIN ]] && PROMPT_NVM=" ⬢ ${${NVM_BIN##*node/v}//\/bin/}"
-        [[ $VIRTUAL_ENV ]] && PROMPT_VIRTUAL_ENV=" 🐍${VIRTUAL_ENV##/*/}"
+        [[ $NVM_BIN ]] && prompt_nvm=" %F{3}⬢ ${${NVM_BIN##*node/v}//\/bin/}"
+        [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${VIRTUAL_ENV##/*/}"
+        prompt_split_lines
     }
 }
 
@@ -331,11 +324,25 @@ function ssh() {
     fi
 }
 
+# On limited space we use a two line prompt, else one line
+prompt_split_lines() {
+    typeset zero='%([BSUbfksu]|([FK]|){*})'
+    mystr=$'${PROMPT_PWD}${PROMPT_READ_ONLY_DIR}${exec_time}${prompt_virtual_env}${prompt_nvm}${GITSTATUS}'
+    typeset -gx res=${#${(S%%)${(e)mystr}//$~zero/}}
+    if (( res > COLUMNS / 3 )); then
+        PROMPT_NEWLINE_SEP=$'\n'
+    else
+        PROMPT_NEWLINE_SEP=' '
+    fi
+}
+
 () {
     # disable python's built in manipulation of the prompt in favor of our own
+    unset VIRTUAL_ENV
+    unset NVM_BIN
     export VIRTUAL_ENV_DISABLE_PROMPT=1
 
-    typeset -gx OLDPROMPT
+    typeset -gx PROMPT_READ_ONLY_DIR
     typeset -gA _last_checks
     typeset -gA _git_fetch_pwds
     typeset -gA _repo_up_to_date
@@ -391,12 +398,15 @@ function ssh() {
     # enable staged, unstaged, conflicted and untracked counters.
     gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 
-    PROMPT=$'${PROMPT_PWD}%F{fg_default_code}'
-    PROMPT+=$'${_read_only_dir:+\e[38;5;18m$_read_only_dir}${EXEC_TIME:+\e[35m$EXEC_TIME}'
-    PROMPT+=$'${VIRTUAL_ENV:+\e[32m${PROMPT_VIRTUAL_ENV}}'
-    PROMPT+=$'${NVM_BIN:+\e[33m${PROMPT_NVM}}'
-    PROMPT+='${GITSTATUS:+$GITSTATUS}%f'
-    PROMPT+=$'\n'
+    PROMPT='$PROMPT_PWD'
+    PROMPT+='$PROMPT_READ_ONLY_DIR'
+    PROMPT+='$exec_time'
+    PROMPT+='$prompt_virtual_env'
+    PROMPT+='$prompt_nvm'
+    PROMPT+='${GITSTATUS+%B${GITSTATUS}%b%f}'
+
+    prompt_split_lines
+    PROMPT+='${PROMPT_NEWLINE_SEP}'
 
     if [[ $SSH_CONNECTION ]]; then
         if [[ -z "$PROMPT_SSH_NAME" ]]; then
