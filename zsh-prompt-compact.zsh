@@ -327,8 +327,7 @@ function ssh() {
 # On limited space we use a two line prompt, else one line
 prompt_split_lines() {
     typeset zero='%([BSUbfksu]|([FK]|){*})'
-    local mystr=$'${PROMPT_PWD}${PROMPT_READ_ONLY_DIR}${exec_time}${prompt_virtual_env}${prompt_nvm}${GITSTATUS}${PROMPT_SSH_NAME:+$PROMPT_SSH_NAME  }'
-    typeset -gx res=${#${(S%%)${(e)mystr}//$~zero/}}
+    typeset -gx res=${#${(S%%)${(e)PROMPT}//$~zero/}}
     if (( res > COLUMNS / 3 )); then
         PROMPT_NEWLINE_SEP=$'\n'
     else
@@ -398,16 +397,7 @@ prompt_split_lines() {
     # enable staged, unstaged, conflicted and untracked counters.
     gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 
-    PROMPT='$PROMPT_PWD'
-    PROMPT+='$PROMPT_READ_ONLY_DIR'
-    PROMPT+='$exec_time'
-    PROMPT+='$prompt_virtual_env'
-    PROMPT+='$prompt_nvm'
-    PROMPT+='${GITSTATUS+%B${GITSTATUS}%b}%f'
-
-    prompt_split_lines
-    PROMPT+='${PROMPT_NEWLINE_SEP}'
-
+    PROMPT=
     if [[ $SSH_CONNECTION ]]; then
         if [[ -z "$PROMPT_SSH_NAME" ]]; then
             PROMPT_SSH_NAME="${HOST}"
@@ -419,5 +409,13 @@ prompt_split_lines() {
             typeset -gx _ssh="[${PROMPT_SSH_NAME}] "
         fi
     fi
+    PROMPT+='$PROMPT_PWD'
+    PROMPT+='$PROMPT_READ_ONLY_DIR'
+    PROMPT+='$exec_time'
+    PROMPT+='$prompt_virtual_env'
+    PROMPT+='$prompt_nvm'
+    PROMPT+='${GITSTATUS+%B${GITSTATUS}%b}%f'
+    PROMPT+='${PROMPT_NEWLINE_SEP}'
     PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
+    prompt_split_lines
 }
