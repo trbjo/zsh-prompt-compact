@@ -102,7 +102,7 @@ function unset_short_path_old() {
     if [[ "$PWD" != "$OLDPWD" ]]; then
         unset _short_path_old PROMPT_READ_ONLY_DIR GITSTATUS
         [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}"
-        PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$PROMPT_DIR_COLOR}%{$reset_color%}%F{fg_default_code}
+        PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$PROMPT_DIR_COLOR}%F{fg_default_code}
     fi
 }
 
@@ -325,14 +325,9 @@ function ssh() {
 }
 
 # On limited space we use a two line prompt, else one line
+typeset -g __zero='%([BSUbfksu]|([FK]|){*})'
 prompt_split_lines() {
-    typeset zero='%([BSUbfksu]|([FK]|){*})'
-    typeset -gx res=${#${(S%%)${(e)PROMPT}//$~zero/}}
-    if (( res > COLUMNS / 3 )); then
-        PROMPT_NEWLINE_SEP=$'\n'
-    else
-        PROMPT_NEWLINE_SEP=' '
-    fi
+    (( ${#${(S%%)${(e)PROMPT}//$~__zero/}} > COLUMNS / 2 )) && PROMPT_WS_SEP=$'\n'|| PROMPT_WS_SEP=' '
 }
 
 () {
@@ -415,7 +410,7 @@ prompt_split_lines() {
     PROMPT+='$prompt_virtual_env'
     PROMPT+='$prompt_nvm'
     PROMPT+='${GITSTATUS+%B${GITSTATUS}%b}%f'
-    PROMPT+='${PROMPT_NEWLINE_SEP}'
+    PROMPT+='${PROMPT_WS_SEP}'
     PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
     prompt_split_lines
 }
