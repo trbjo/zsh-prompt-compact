@@ -102,7 +102,7 @@ function unset_short_path_old() {
     if [[ "$PWD" != "$OLDPWD" ]]; then
         unset _short_path_old PROMPT_READ_ONLY_DIR GITSTATUS
         [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}"
-        PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$PROMPT_DIR_COLOR}%F{fg_default_code}
+        PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%{$reset_color%}\/$PROMPT_DIR_COLOR}%b%f
     fi
 }
 
@@ -367,7 +367,7 @@ prompt_split_lines() {
     # the directory color set in LS_COLORS.
     (( ${+functions[_raw_to_zsh_color]} )) && PROMPT_DIR_COLOR=$(_raw_to_zsh_color $_di_color_raw) ||\
     PROMPT_DIR_COLOR=${PROMPT_DIR_COLOR:-'%F{4}'}
-    PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%F{fg_default_code}\/$PROMPT_DIR_COLOR}%{$reset_color%}
+    PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%{$reset_color%}\/${PROMPT_DIR_COLOR}}%b%f
 
     autoload -Uz add-zsh-hook
 
