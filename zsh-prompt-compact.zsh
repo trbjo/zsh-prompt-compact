@@ -101,8 +101,8 @@ function set_termtitle_precmd() {
 function unset_short_path_old() {
     if [[ "$PWD" != "$OLDPWD" ]]; then
         unset _short_path_old PROMPT_READ_ONLY_DIR GITSTATUS
-        [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}"
-        PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%{$reset_color%}\/$PROMPT_DIR_COLOR}%b%f
+        [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
+        PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR}}%b%f
     fi
 }
 
@@ -300,7 +300,7 @@ update_git_status() {
 }
 
 preprompt() {
-    [[ -w "$PWD" ]] || PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}"
+    [[ -w "$PWD" ]] || PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
     [[ "$PWD" != "$HOME" ]] && gitstatus_query -t -0 -c update_git_status 'MY' 2> /dev/null
     [[ $NVM_BIN ]] && prompt_nvm=" %F{3}⬢ ${${NVM_BIN##*node/v}//\/bin/}"
     [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${VIRTUAL_ENV##/*/}"
@@ -367,7 +367,8 @@ prompt_split_lines() {
     # the directory color set in LS_COLORS.
     (( ${+functions[_raw_to_zsh_color]} )) && PROMPT_DIR_COLOR=$(_raw_to_zsh_color $_di_color_raw) ||\
     PROMPT_DIR_COLOR=${PROMPT_DIR_COLOR:-'%F{4}'}
-    PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%{$reset_color%}\/${PROMPT_DIR_COLOR}}%b%f
+    PROMPT_PATH_SEP_COLOR=${PROMPT_PATH_SEP_COLOR:-'%F{7}'}
+    PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR}}%b%f
 
     autoload -Uz add-zsh-hook
 
