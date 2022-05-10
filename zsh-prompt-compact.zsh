@@ -362,8 +362,6 @@ prompt_split_lines() {
     fi
     PROMPT_EOL_MARK=''
 
-    [[ $PROMPT_NEWLINE_SEPARATOR != 0 ]] && PROMPT_NEWLINE_SEPARATOR=1 || unset PROMPT_NEWLINE_SEPARATOR
-
     # this has an optional dependency, namely the _raw_to_zsh_color function from
     # trobjo/zsh-common-functions that will color the path in the same colors as
     # the directory color set in LS_COLORS.
