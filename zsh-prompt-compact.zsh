@@ -293,7 +293,7 @@ write_git_status() {
     # the unicode snake has a length of two
     [[ ${prompt_virtual_env} ]] && right_distance+=1
 
-    if [[ "${PROMPT_WS_SEP}" == ' ' ]]; then
+    if [[ "${PROMPT_WS_SEP}" != ' ' ]]; then
         # gitstatus might bleed into prompt; in that case, we print the old with a different color
         if (( ${#p} == ${#GITSTATUS} )); then
             print -Pn -- '\e7\r\e[${right_distance}C%B%F{250}${GITSTATUS[8,${#GITSTATUS}]}\e8'
