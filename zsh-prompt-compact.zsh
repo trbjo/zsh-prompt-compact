@@ -278,7 +278,7 @@ write_git_status() {
     (( VCS_STATUS_NUM_UNSTAGED   )) && p+=" ${modified}!${VCS_STATUS_NUM_UNSTAGED}"
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
-    if [[ ! $GITSTATUS ]]; then
+    if [[ -z $GITSTATUS ]]; then
         export GITSTATUS="${branch_color}$p"
         export GITSTATUS_BLUE="%F{6}$p"
         prompt_split_lines
@@ -312,10 +312,8 @@ write_git_status() {
 
 is_buffer_empty() {
     if [[ $#BUFFER == 0 ]]; then
-        zle -R
         return 0
     else
-        zle -R
         return 1
     fi
 }
