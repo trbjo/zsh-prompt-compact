@@ -296,7 +296,7 @@ write_git_status() {
     if [[ "${PROMPT_WS_SEP}" == ' ' ]]; then
         # gitstatus might bleed into prompt; in that case, we print the old with a different color
         if (( ${#p} != ${#GITSTATUS} )); then
-            print -Pn -- '\e7\r\e[${right_distance}C%B%F{250}${GITSTATUS[9,${#GITSTATUS}]}\e8'
+            print -Pn -- '\e7\r\e[${right_distance}C %B%F{250}${GITSTATUS[9,${#GITSTATUS}]}\e8'
         else
             print -Pn -- '\e7\r\e[${right_distance}C${p}\e8'
         fi
