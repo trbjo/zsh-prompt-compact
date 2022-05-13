@@ -238,9 +238,9 @@ write_git_status() {
     emulate -L zsh
 
     if [[ $_repo_up_to_date[$VCS_STATUS_WORKDIR] == true ]]; then
-        local      branch_color='%F{2}'   # green foreground
+        local      branch='%F{2}'   # green foreground
     else
-        local      branch_color='%F{6}'   # cyan foreground
+        local      branch='%F{6}'   # cyan foreground
     fi
 
     local      clean='%F{4}'  # cyan foreground
@@ -249,7 +249,7 @@ write_git_status() {
     local  untracked='%F{18}' # grey foreground
     local conflicted='%F{2}'  # red foreground
 
-    local p
+    local p=" %B"
 
     local where  # branch name, tag or commit
     if [[ -n $VCS_STATUS_LOCAL_BRANCH ]]; then
@@ -263,7 +263,7 @@ write_git_status() {
     fi
 
     (( $#where > 32 )) && where[13,-13]="…"  # truncate long branch names and tags
-    p+="${where//\%/%%}"             # escape %
+    p+="${branch}${where//\%/%%}"             # escape %
 
     (( VCS_STATUS_COMMITS_BEHIND )) && p+=" ${clean}⇣${VCS_STATUS_COMMITS_BEHIND}"
     (( VCS_STATUS_COMMITS_AHEAD && !VCS_STATUS_COMMITS_BEHIND )) && p+=" "
@@ -278,33 +278,33 @@ write_git_status() {
     (( VCS_STATUS_NUM_UNSTAGED   )) && p+=" ${modified}!${VCS_STATUS_NUM_UNSTAGED}"
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
+    p+="%b%f"
+
     if [[ -z $GITSTATUS ]]; then
-        export GITSTATUS="${branch_color}$p"
-        export GITSTATUS_BLUE="%F{6}$p"
+        export GITSTATUS="$p"
         prompt_split_lines
         zle reset-prompt
 
-    elif [[ "$GITSTATUS" != "${branch_color}$p" ]]; then
+    elif [[ "$GITSTATUS" != "$p" ]]; then
         local old_gitstatus="${GITSTATUS}"
-        export GITSTATUS="${branch_color}$p"
-        export GITSTATUS_BLUE="%F{6}$p"
+        export GITSTATUS="$p"
         if zle is_buffer_empty; then
             prompt_split_lines
             zle reset-prompt
         else
-            (( right_distance= ${#${(S%%)${(e)PROMPT}//$~__zero/}} - ${#${(S%%)${(e)GITSTATUS}//$~__zero/}} - 4 ))
+            (( right_distance= ${#${(S%%)${(e)PROMPT}//$~__zero/}} - ${#${(S%%)${(e)GITSTATUS}//$~__zero/}} - 3 ))
             # the unicode snake has a length of two
             [[ ${prompt_virtual_env} ]] && right_distance+=1
 
             if [[ "${PROMPT_WS_SEP}" == ' ' ]]; then
                 # gitstatus might bleed into prompt; in that case, we are limited to the old length
                 if (( ${#old_gitstatus} != ${#GITSTATUS} )); then
-                    print -Pn -- '\e7\r\e[${right_distance}C %B%F{250}${old_gitstatus[6,${#old_gitstatus}]}%b%f\e8'
+                    print -Pn -- '\e7\r\e[${right_distance}C%B%F{250}${old_gitstatus[9,${#old_gitstatus}]}\e8'
                 else
-                    print -Pn -- '\e7\r\e[${right_distance}C %B${GITSTATUS}%b%f\e8'
+                    print -Pn -- '\e7\r\e[${right_distance}C${GITSTATUS}\e8'
                 fi
             else
-                print -Pn -- '\e7\e[F\e[${right_distance}C\e[0K %B${GITSTATUS}%b%f\e8'
+                print -Pn -- '\e7\e[F\e[${right_distance}C\e[0K${GITSTATUS}\e8'
             fi
         fi
     fi
@@ -445,7 +445,7 @@ prompt_split_lines() {
     PROMPT+='$exec_time'
     PROMPT+='$prompt_virtual_env'
     PROMPT+='$prompt_nvm'
-    PROMPT+='${GITSTATUS:+ %B${GITSTATUS}%b%f}'
+    PROMPT+='${GITSTATUS}'
     PROMPT+='${PROMPT_WS_SEP}'
     PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
     prompt_split_lines
