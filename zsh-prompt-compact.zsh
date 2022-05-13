@@ -310,13 +310,7 @@ write_git_status() {
     fi
 }
 
-is_buffer_empty() {
-    if [[ $#BUFFER == 0 ]]; then
-        return 0
-    else
-        return 1
-    fi
-}
+is_buffer_empty() { return $#BUFFER }
 zle -N is_buffer_empty
 
 update_git_status() {
