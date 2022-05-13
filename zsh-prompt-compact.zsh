@@ -278,13 +278,48 @@ write_git_status() {
     (( VCS_STATUS_NUM_UNSTAGED   )) && p+=" ${modified}!${VCS_STATUS_NUM_UNSTAGED}"
     (( VCS_STATUS_NUM_UNTRACKED  )) && p+=" ${untracked}?${VCS_STATUS_NUM_UNTRACKED}"
 
-    if [[ ! $GITSTATUS ]] || [[ "$GITSTATUS" != " ${branch_color}$p" ]]; then
-        export GITSTATUS=" ${branch_color}$p"
-        export GITSTATUS_BLUE=" %F{6}$p"
+    if [[ ! $GITSTATUS ]]; then
+        export GITSTATUS="${branch_color}$p"
+        export GITSTATUS_BLUE="%F{6}$p"
         prompt_split_lines
         zle reset-prompt
+
+    elif [[ "$GITSTATUS" != "${branch_color}$p" ]]; then
+        local old_gitstatus="${GITSTATUS}"
+        export GITSTATUS="${branch_color}$p"
+        export GITSTATUS_BLUE="%F{6}$p"
+        if zle is_buffer_empty; then
+            prompt_split_lines
+            zle reset-prompt
+        else
+            (( right_distance= ${#${(S%%)${(e)PROMPT}//$~__zero/}} - ${#${(S%%)${(e)GITSTATUS}//$~__zero/}} - 4 ))
+            # the unicode snake has a length of two
+            [[ ${prompt_virtual_env} ]] && right_distance+=1
+
+            if [[ "${PROMPT_WS_SEP}" == ' ' ]]; then
+                # gitstatus might bleed into prompt; in that case, we are limited to the old length
+                if (( ${#old_gitstatus} != ${#GITSTATUS} )); then
+                    print -Pn -- '\e7\r\e[${right_distance}C %B%F{250}${old_gitstatus[6,${#old_gitstatus}]}%b%f\e8'
+                else
+                    print -Pn -- '\e7\r\e[${right_distance}C %B${GITSTATUS}%b%f\e8'
+                fi
+            else
+                print -Pn -- '\e7\e[F\e[${right_distance}C\e[0K %B${GITSTATUS}%b%f\e8'
+            fi
+        fi
     fi
 }
+
+is_buffer_empty() {
+    if [[ $#BUFFER == 0 ]]; then
+        zle -R
+        return 0
+    else
+        zle -R
+        return 1
+    fi
+}
+zle -N is_buffer_empty
 
 update_git_status() {
     [[ $VCS_STATUS_RESULT == 'ok-async' ]] || return 0
@@ -327,7 +362,17 @@ function ssh() {
 # On limited space we use a two line prompt, else one line
 typeset -g __zero='%([BSUbfksu]|([FK]|){*})'
 prompt_split_lines() {
-    (( ${#${(S%%)${(e)PROMPT}//$~__zero/}} > COLUMNS / 2 )) && PROMPT_WS_SEP=$'\n'|| PROMPT_WS_SEP=' '
+    __old_ws_sep="$PROMPT_WS_SEP"
+    if (( ${#${(S%%)${(e)PROMPT}//$~__zero/}} > COLUMNS / 2 )); then
+        PROMPT_WS_SEP=$'\n'
+    else
+        PROMPT_WS_SEP=' '
+    fi
+    if [[ "$PROMPT_WS_SEP" == "$__old_ws_sep" ]]; then
+        return 2
+    else
+        return 0
+    fi
 }
 
 () {
@@ -408,7 +453,7 @@ prompt_split_lines() {
     PROMPT+='$exec_time'
     PROMPT+='$prompt_virtual_env'
     PROMPT+='$prompt_nvm'
-    PROMPT+='${GITSTATUS+%B${GITSTATUS}%b}%f'
+    PROMPT+='${GITSTATUS:+ %B${GITSTATUS}%b%f}'
     PROMPT+='${PROMPT_WS_SEP}'
     PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
     prompt_split_lines
