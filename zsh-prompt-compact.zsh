@@ -299,19 +299,18 @@ write_git_status() {
         # the unicode snake has a length of two
         [[ ${prompt_virtual_env} ]] && right_distance+=1
 
-        local old_gitstatus="${GITSTATUS}"
-        export GITSTATUS="$p"
-
         if [[ "${PROMPT_WS_SEP}" == ' ' ]]; then
-            # gitstatus might bleed into prompt; in that case, we are limited to the old length
-            if (( ${#old_gitstatus} != ${#GITSTATUS} )); then
-                print -Pn -- '\e7\r\e[${right_distance}C%B%F{250}${old_gitstatus[9,${#old_gitstatus}]}\e8'
+            # gitstatus might bleed into prompt; in that case, we print the old with a different color
+            if (( ${#p} != ${#GITSTATUS} )); then
+                print -Pn -- '\e7\r\e[${right_distance}C%B%F{250}${GITSTATUS[9,${#GITSTATUS}]}\e8'
             else
-                print -Pn -- '\e7\r\e[${right_distance}C${GITSTATUS}\e8'
+                print -Pn -- '\e7\r\e[${right_distance}C${p}\e8'
             fi
         else
-            print -Pn -- '\e7\e[F\e[${right_distance}C\e[0K${GITSTATUS}\e8'
+            print -Pn -- '\e7\e[F\e[${right_distance}C\e[0K${p}\e8'
         fi
+
+        export GITSTATUS="$p"
     fi
 }
 
