@@ -249,7 +249,7 @@ write_git_status() {
     local  untracked='%F{18}' # grey foreground
     local conflicted='%F{2}'  # red foreground
 
-    local p=" %B"
+    local p="%B"
 
     local where  # branch name, tag or commit
     if [[ -n $VCS_STATUS_LOCAL_BRANCH ]]; then
@@ -263,7 +263,7 @@ write_git_status() {
     fi
 
     (( $#where > 32 )) && where[13,-13]="…"  # truncate long branch names and tags
-    p+="${branch}${where//\%/%%}"             # escape %
+    p+="${branch} ${where//\%/%%}"             # escape %
 
     (( VCS_STATUS_COMMITS_BEHIND )) && p+=" ${clean}⇣${VCS_STATUS_COMMITS_BEHIND}"
     (( VCS_STATUS_COMMITS_AHEAD && !VCS_STATUS_COMMITS_BEHIND )) && p+=" "
@@ -295,8 +295,8 @@ write_git_status() {
 
     if [[ "${PROMPT_WS_SEP}" == ' ' ]]; then
         # gitstatus might bleed into prompt; in that case, we print the old with a different color
-        if (( ${#p} != ${#GITSTATUS} )); then
-            print -Pn -- '\e7\r\e[${right_distance}C %B%F{250}${GITSTATUS[9,${#GITSTATUS}]}\e8'
+        if (( ${#p} == ${#GITSTATUS} )); then
+            print -Pn -- '\e7\r\e[${right_distance}C%B%F{250}${GITSTATUS[8,${#GITSTATUS}]}\e8'
         else
             print -Pn -- '\e7\r\e[${right_distance}C${p}\e8'
         fi
