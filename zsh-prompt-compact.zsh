@@ -352,7 +352,7 @@ function ssh() {
 typeset -g __zero='%([BSUbfksu]|([FK]|){*})'
 prompt_split_lines() {
     __old_ws_sep="$PROMPT_WS_SEP"
-    if (( ${#${(S%%)${(e)PROMPT}//$~__zero/}} > COLUMNS / 2 )); then
+    if (( ${#${(S%%)${(e)PROMPT}//$~__zero/}} > COLUMNS / 3 )); then
         PROMPT_WS_SEP=$'\n'
     else
         PROMPT_WS_SEP=' '
