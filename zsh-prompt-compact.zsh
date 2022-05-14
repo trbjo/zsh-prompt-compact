@@ -100,7 +100,8 @@ function set_termtitle_precmd() {
 
 function unset_short_path_old() {
     if [[ "$PWD" != "$OLDPWD" ]]; then
-        unset _short_path_old PROMPT_READ_ONLY_DIR GITSTATUS
+        [[ $PWD == ${VCS_STATUS_WORKDIR}* ]] || unset GITSTATUS
+        unset _short_path_old PROMPT_READ_ONLY_DIR
         [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
         PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR}}%b%f
     fi
