@@ -103,7 +103,7 @@ function unset_short_path_old() {
         [[ $PWD == ${VCS_STATUS_WORKDIR}* ]] || unset GITSTATUS
         unset _short_path_old PROMPT_READ_ONLY_DIR
         [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
-        PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR}}%b%f
+        PROMPT_PWD=${${PWD/#$HOME/${PROMPT_DIR_COLOR}\~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR}}%b%f
     fi
 }
 
@@ -403,7 +403,7 @@ prompt_split_lines() {
     (( ${+functions[_raw_to_zsh_color]} )) && PROMPT_DIR_COLOR=$(_raw_to_zsh_color $_di_color_raw) ||\
     PROMPT_DIR_COLOR=${PROMPT_DIR_COLOR:-'%F{4}'}
     PROMPT_PATH_SEP_COLOR=${PROMPT_PATH_SEP_COLOR:-'%F{7}'}
-    PROMPT_PWD=${PROMPT_DIR_COLOR}${${PWD/#$HOME/\~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR}}%b%f
+    PROMPT_PWD=${${PWD/#$HOME/${PROMPT_DIR_COLOR}\~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR}}%b%f
 
     autoload -Uz add-zsh-hook
 
