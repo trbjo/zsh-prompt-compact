@@ -28,12 +28,14 @@ activate() {
             _ROOTED=true
             cd $VCS_STATUS_WORKDIR
             activate
+            local ret=$?
             cd $OLDPWD
             unset _ROOTED
+            return $ret
         else
             print
+            return 1
         fi
-        return 1
     fi
 }
 
