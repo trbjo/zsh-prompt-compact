@@ -352,19 +352,17 @@ function ssh() {
 }
 
 # On limited space we use a two line prompt, else one line
+# returns 0 if prompt should change, 2 if value of PROMPT_WS_SEP is unchanged
 typeset -g __zero='%([BSUbfksu]|([FK]|){*})'
 prompt_split_lines() {
-    __old_ws_sep="$PROMPT_WS_SEP"
     if (( ${#${(S%%)${(e)PROMPT}//$~__zero/}} > COLUMNS / 3 )); then
+        [[ -n $PROMPT_WS_SEP ]] && local ret=2
         PROMPT_WS_SEP=$'\n'
     else
-        PROMPT_WS_SEP=' '
+        [[ -z $PROMPT_WS_SEP ]] && local ret=2
+        unset PROMPT_WS_SEP
     fi
-    if [[ "$PROMPT_WS_SEP" == "$__old_ws_sep" ]]; then
-        return 2
-    else
-        return 0
-    fi
+    return ${ret:-0}
 }
 
 () {
@@ -446,7 +444,7 @@ prompt_split_lines() {
     PROMPT+='$prompt_virtual_env'
     PROMPT+='$prompt_nvm'
     PROMPT+='${GITSTATUS}'
-    PROMPT+='${PROMPT_WS_SEP}'
+    PROMPT+='${PROMPT_WS_SEP:- }'
     PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
     prompt_split_lines
 }
