@@ -1,3 +1,8 @@
+# activate direnv if it can be found
+type direnv > /dev/null 2>&1 && () {
+    eval "$(direnv hook zsh)"
+}
+
 activate() {
     if [[ $VIRTUAL_ENV ]]; then
         print "Deactivate your current environment first"
