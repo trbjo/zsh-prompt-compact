@@ -13,7 +13,7 @@ activate() {
         venvs+="${1%/*}"
     else
         local file
-        for file in ./*/pyvenv.cfg; do
+        for file in ./(.)*/pyvenv.cfg; do
             if [[ -f "$file" ]]; then
                 venvs+="${file%/*}"
             fi
