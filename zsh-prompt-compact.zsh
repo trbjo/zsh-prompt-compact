@@ -8,17 +8,22 @@ activate() {
         print "Deactivate your current environment first"
         return 1
     fi
-    typeset -aU venvs
-    if [[ "${#@}" -eq 1 ]]; then
-        venvs+="${1%/*}"
+
+    local __dir
+    if [[ ! -z "$1" ]]; then
+        __dir="$1"
     else
-        local file
-        for file in ./(.)*/pyvenv.cfg; do
-            if [[ -f "$file" ]]; then
-                venvs+="${file%/*}"
-            fi
-        done
+        __dir="$PWD"
     fi
+
+    typeset -aU venvs
+    local file
+    for file in ${__dir}/(.)*/pyvenv.cfg; do
+        if [[ -f "$file" ]]; then
+            venvs+="${file%/*}"
+        fi
+    done
+
     if [[ "${#venvs}" -eq 1 ]]; then
         source "${venvs[@]:0}/bin/activate"
         return 0
@@ -27,15 +32,11 @@ activate() {
         print "Use \`activate <venv>\` to activate it"
         return 1
     elif [[ "${#venvs}" -eq 0 ]]; then
-        print -n "No venv found${_ROOTED:+ in $(_colorizer $VCS_STATUS_WORKDIR)}"
+        print -n "No venv found"
         if [[ $VCS_STATUS_RESULT == 'ok-async' ]] && [[ "$PWD" != $VCS_STATUS_WORKDIR ]]; then
-            print ", trying git root dir"
-            _ROOTED=true
-            cd $VCS_STATUS_WORKDIR
-            activate
+            print ", trying parent directory $(_colorizer ${__dir%/*})"
+            activate "${__dir%/*}"
             local ret=$?
-            cd $OLDPWD
-            unset _ROOTED
             return $ret
         else
             print
@@ -345,8 +346,11 @@ preprompt() {
         [[ $NVM_BIN ]] && prompt_nvm=" %F{3}⬢ ${${NVM_BIN##*node/v}//\/bin/}"
         [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${VIRTUAL_ENV##/*/}"
         prompt_split_lines
+        (( ${+__PROMPT_NEWLINE} )) && print
     }
 }
+
+_zsh_autosuggest_helper() { gitstatus_query -t -0 -c update_git_status 'MY' }
 
 function ssh() {
     if [[ "${#@}" -eq 1 ]] && [[ ! $1 =~ [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$ ]]; then
