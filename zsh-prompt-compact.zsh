@@ -25,6 +25,8 @@ activate() {
     done
 
     if [[ "${#venvs}" -eq 1 ]]; then
+        print "Found venv in $(_colorizer ${__dir})"
+        type wl-copy > /dev/null 2>&1 && wl-copy -n "${(q)__dir}"
         source "${venvs[@]:0}/bin/activate"
         return 0
     elif [[ "${#venvs}" -gt 1 ]]; then
@@ -32,14 +34,11 @@ activate() {
         print "Use \`activate <venv>\` to activate it"
         return 1
     elif [[ "${#venvs}" -eq 0 ]]; then
-        print -n "No venv found"
         if [[ $VCS_STATUS_RESULT == 'ok-async' ]] && [[ "$PWD" != $VCS_STATUS_WORKDIR ]]; then
-            print ", trying parent directory $(_colorizer ${__dir%/*})"
             activate "${__dir%/*}"
-            local ret=$?
-            return $ret
+            return $?
         else
-            print
+            print "No venv found"
             return 1
         fi
     fi
@@ -199,6 +198,7 @@ function set_termtitle_pwd() {
 }
 
 function control_git_sideeffects_preexec() {
+    (( ${+__PROMPT_NEWLINE} )) && typeset -g __prompt_newline
     unset exec_time
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
     if [[ ${_git_fetch_pwds[${VCS_STATUS_WORKDIR}]:-0} != 0 ]]\
@@ -345,8 +345,8 @@ preprompt() {
         gitstatus_query -t -0 -c update_git_status 'MY'
         [[ $NVM_BIN ]] && prompt_nvm=" %F{3}⬢ ${${NVM_BIN##*node/v}//\/bin/}"
         [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${VIRTUAL_ENV##/*/}"
+        (( ${+__prompt_newline} )) && print && unset __prompt_newline
         prompt_split_lines
-        (( ${+__PROMPT_NEWLINE} )) && print
     }
 }
 
