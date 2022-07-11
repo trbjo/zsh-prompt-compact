@@ -1,6 +1,30 @@
 # activate direnv if it can be found
-type direnv > /dev/null 2>&1 && () {
-    eval "$(direnv hook zsh)"
+type direnv > /dev/null 2>&1 && eval "$(direnv hook zsh)"
+
+__activater_recursive() {
+    if [[ "$1" == '/' ]] || [[ "$1" == "$HOME" ]]; then
+        return
+    fi
+
+    if [[ $__venv_name ]]; then
+        if [[ -f "${1}/${__venv_name}/pyvenv.cfg" ]]; then
+            venvs+="${1}/${__venv_name}"
+        else
+            __activater_recursive "${1%/*}"
+        fi
+        return
+    fi
+
+    local file ___dir
+    for ___dir in ${1}/*(D); do
+        for file in ${___dir}/*; do
+            if [[ "${file##*/}" == "pyvenv.cfg" ]]; then
+                venvs+="${file%/*}"
+            fi
+        done
+    done
+
+    (( ${#venvs} == 0 )) && __activater_recursive "${1%/*}"
 }
 
 activate() {
@@ -9,39 +33,19 @@ activate() {
         return 1
     fi
 
-    local __dir
-    if [[ ! -z "$1" ]]; then
-        __dir="$1"
-    else
-        __dir="$PWD"
-    fi
+    [[ ! -z "$1" ]] && local __venv_name="$1"
 
+    local __venv
     typeset -aU venvs
-    local file
-    for file in ${__dir}/(.)*/pyvenv.cfg; do
-        if [[ -f "$file" ]]; then
-            venvs+="${file%/*}"
-        fi
-    done
+    __activater_recursive "$PWD"
 
-    if [[ "${#venvs}" -eq 1 ]]; then
-        print "Found venv in $(_colorizer ${__dir})"
-        type wl-copy > /dev/null 2>&1 && wl-copy -n "${(q)__dir}"
-        source "${venvs[@]:0}/bin/activate"
-        return 0
-    elif [[ "${#venvs}" -gt 1 ]]; then
-        print "More than one venv: \e[3m${venvs[@]##*/}\e[0m"
-        print "Use \`activate <venv>\` to activate it"
-        return 1
-    elif [[ "${#venvs}" -eq 0 ]]; then
-        if [[ $VCS_STATUS_RESULT == 'ok-async' ]] && [[ "$PWD" != $VCS_STATUS_WORKDIR ]]; then
-            activate "${__dir%/*}"
-            return $?
-        else
-            print "No venv found"
-            return 1
-        fi
-    fi
+    case ${#venvs} in
+        1) print "Found venv in $(_colorizer ${venvs})"
+           source "${venvs[@]:0}/bin/activate" ;;
+        0) print "No venv found" ;;
+        *) print -l "Found more than one venv. Use \`activate <venv>\` to activate it." "\e[1m\e[32m${venvs[@]##*/}\e[0m" ;;
+    esac
+    return $(( ${#venvs} -1 ))
 }
 
 function set_termtitle_preexec() {
