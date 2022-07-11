@@ -35,7 +35,6 @@ activate() {
 
     [[ ! -z "$1" ]] && local __venv_name="$1"
 
-    local __venv
     typeset -aU venvs
     __activater_recursive "$PWD"
 
