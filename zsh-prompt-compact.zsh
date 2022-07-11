@@ -18,9 +18,7 @@ __activater_recursive() {
     local file ___dir
     for ___dir in ${1}/*(D); do
         for file in ${___dir}/*; do
-            if [[ "${file##*/}" == "pyvenv.cfg" ]]; then
-                venvs+="${file%/*}"
-            fi
+            [[ "${file##*/}" == "pyvenv.cfg" ]] && venvs+="${file%/*}"
         done
     done
 
