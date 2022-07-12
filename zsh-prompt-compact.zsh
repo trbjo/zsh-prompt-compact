@@ -26,11 +26,6 @@ __activater_recursive() {
 }
 
 activate() {
-    if [[ $VIRTUAL_ENV ]]; then
-        print "Deactivate your current environment first"
-        return 1
-    fi
-
     [[ ! -z "$1" ]] && local __venv_name="$1"
 
     typeset -aU venvs
@@ -38,6 +33,7 @@ activate() {
 
     case ${#venvs} in
         1) print "Found venv in $(_colorizer ${venvs})"
+           [[ $VIRTUAL_ENV ]] && deactivate
            source "${venvs[@]:0}/bin/activate" ;;
         0) print "No venv found" ;;
         *) print -l "Found more than one venv. Use \`activate <venv>\` to activate it." "\e[1m\e[32m${venvs[@]##*/}\e[0m" ;;
