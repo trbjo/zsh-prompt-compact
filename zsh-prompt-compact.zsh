@@ -15,6 +15,7 @@ __activater_recursive() {
     (( ${#venvs} == 0 )) && __activater_recursive "${1%/*}"
 }
 
+type pyenv > /dev/null 2>&1 && eval "$(pyenv init -)"
 activate() {
     [[ ! -z "$1" ]] && local __venv_name="$1"
 
@@ -24,10 +25,7 @@ activate() {
     case ${#venvs} in
         1) print "Found venv in $(_colorizer ${venvs})"
            [[ $VIRTUAL_ENV ]] && deactivate
-           type pyenv > /dev/null 2>&1 && {
-                eval "$(pyenv init -)"
-                typeset -g PROMPT_PYENV_PYTHON_VERSION="$(pyenv version-name)"
-            }
+           type pyenv > /dev/null 2>&1 && typeset -g PROMPT_PYENV_PYTHON_VERSION="$(pyenv version-name)"
            source "${venvs[@]:0}/bin/activate" ;;
         0) print "No venv found" ;;
         *) print -l "Found more than one venv. Use \`activate <venv>\` to activate it." "\e[1m\e[32m${venvs[@]##*/}\e[0m" ;;
