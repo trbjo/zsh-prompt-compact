@@ -1,6 +1,3 @@
-# activate direnv if it can be found
-type direnv > /dev/null 2>&1 && eval "$(direnv hook zsh)"
-
 __activater_recursive() {
     [[ "$1" != '/' ]] && [[ "$1" != "$HOME" ]] || return
 
@@ -27,6 +24,10 @@ activate() {
     case ${#venvs} in
         1) print "Found venv in $(_colorizer ${venvs})"
            [[ $VIRTUAL_ENV ]] && deactivate
+           type pyenv > /dev/null 2>&1 && {
+                eval "$(pyenv init -)"
+                typeset -g PROMPT_PYENV_PYTHON_VERSION="$(pyenv version-name)"
+            }
            source "${venvs[@]:0}/bin/activate" ;;
         0) print "No venv found" ;;
         *) print -l "Found more than one venv. Use \`activate <venv>\` to activate it." "\e[1m\e[32m${venvs[@]##*/}\e[0m" ;;
@@ -326,7 +327,7 @@ preprompt() {
     [[ -w "$PWD" ]] || PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
     [[ "$PWD" != "$HOME" ]] && gitstatus_query -t -0 -c update_git_status 'MY' 2> /dev/null
     [[ $NVM_BIN ]] && prompt_nvm=" %F{3}⬢ ${${NVM_BIN##*node/v}//\/bin/}"
-    [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${VIRTUAL_ENV##/*/}"
+    [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${PROMPT_PYENV_PYTHON_VERSION:+%{B}$PROMPT_PYENV_PYTHON_VERSION%{b} }${VIRTUAL_ENV##/*/}"
     PROMPT_EOL_MARK="$prompt_eol"
 
     preprompt() {
@@ -334,7 +335,7 @@ preprompt() {
         unset cmd_exec_timestamp prompt_nvm prompt_virtual_env
         gitstatus_query -t -0 -c update_git_status 'MY'
         [[ $NVM_BIN ]] && prompt_nvm=" %F{3}⬢ ${${NVM_BIN##*node/v}//\/bin/}"
-        [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${VIRTUAL_ENV##/*/}"
+        [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${PROMPT_PYENV_PYTHON_VERSION:+%B$PROMPT_PYENV_PYTHON_VERSION%b }${VIRTUAL_ENV##/*/}"
         (( ${+__prompt_newline} )) && print && unset __prompt_newline
         prompt_split_lines
     }
