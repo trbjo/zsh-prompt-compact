@@ -2,25 +2,18 @@
 type direnv > /dev/null 2>&1 && eval "$(direnv hook zsh)"
 
 __activater_recursive() {
-    if [[ "$1" == '/' ]] || [[ "$1" == "$HOME" ]]; then
-        return
-    fi
+    [[ "$1" != '/' ]] && [[ "$1" != "$HOME" ]] || return
 
     if [[ $__venv_name ]]; then
-        if [[ -f "${1}/${__venv_name}/pyvenv.cfg" ]]; then
-            venvs+="${1}/${__venv_name}"
-        else
-            __activater_recursive "${1%/*}"
-        fi
-        return
-    fi
-
-    local file ___dir
-    for ___dir in ${1}/*(D); do
-        for file in ${___dir}/*; do
-            [[ "${file##*/}" == "pyvenv.cfg" ]] && venvs+="${file%/*}"
+        [[ -f "${1}/${__venv_name}/pyvenv.cfg" ]] && venvs+="${1}/${__venv_name}"
+    else
+        local file ___dir
+        for ___dir in ${1}/*(D); do
+            for file in ${___dir}/*; do
+                [[ "${file##*/}" == "pyvenv.cfg" ]] && venvs+="${file%/*}"
+            done
         done
-    done
+    fi
 
     (( ${#venvs} == 0 )) && __activater_recursive "${1%/*}"
 }
