@@ -23,7 +23,8 @@ activate() {
     __activater_recursive "$PWD"
 
     case ${#venvs} in
-        1) print "Found venv in $(_colorizer ${venvs})"
+        1) [[ $VIRTUAL_ENV ]] && [[ "$VIRTUAL_ENV" == "${venvs[@]:0}" ]] && print "Already using $(_colorizer ${venvs})" && return 1
+            print "Found venv in $(_colorizer ${venvs})"
            [[ $VIRTUAL_ENV ]] && deactivate
            type pyenv > /dev/null 2>&1 && typeset -g PROMPT_PYENV_PYTHON_VERSION="$(pyenv version-name)"
            source "${venvs[@]:0}/bin/activate" ;;
