@@ -427,16 +427,14 @@ prompt_split_lines() {
 
     PROMPT=
     if [[ $SSH_CONNECTION ]]; then
-        if [[ -z "$PROMPT_SSH_NAME" ]]; then
-            PROMPT_SSH_NAME="${HOST}"
-        fi
-        PROMPT+="%B[%b$PROMPT_SSH_NAME%B]%b "
+        [[ -z "$PROMPT_SSH_NAME" ]] && PROMPT_SSH_NAME="${HOST}"
         if (( $#PROMPT_SSH_NAME > 15 )); then
             typeset -gx _ssh="[${PROMPT_SSH_NAME:0:7}…${PROMPT_SSH_NAME: -7}] "
         else
             typeset -gx _ssh="[${PROMPT_SSH_NAME}] "
         fi
     fi
+    PROMPT+='${SSH_CONNECTION:+%B[%b$PROMPT_SSH_NAME%B]%b }'
     PROMPT+='$PROMPT_PWD'
     PROMPT+='$PROMPT_READ_ONLY_DIR'
     PROMPT+='$exec_time'
