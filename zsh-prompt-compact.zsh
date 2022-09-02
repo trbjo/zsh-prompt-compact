@@ -15,7 +15,6 @@ __activater_recursive() {
     (( ${#venvs} == 0 )) && __activater_recursive "${1%/*}"
 }
 
-type pyenv > /dev/null 2>&1 && eval "$(pyenv init -)"
 activate() {
     [[ ! -z "$1" ]] && local __venv_name="$1"
 
