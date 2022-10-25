@@ -96,10 +96,19 @@ function set_termtitle_precmd() {
 
 function unset_short_path_old() {
     if [[ "$PWD" != "$OLDPWD" ]]; then
-        [[ $PWD == ${VCS_STATUS_WORKDIR}* ]] || unset GITSTATUS
-        unset _short_path_old PROMPT_READ_ONLY_DIR
-        [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
-        PROMPT_PWD=${${PWD/#$HOME/${PROMPT_DIR_COLOR}\~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR}}%b%f
+        if [[ $PWD == ${VCS_STATUS_WORKDIR}* ]]; then
+            unset _short_path_old PROMPT_READ_ONLY_DIR
+            [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
+            PROMPT_PWD=${${PWD/#$HOME/${PROMPT_DIR_COLOR}\~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR}}%b%f
+
+            local __git_dir="${VCS_STATUS_WORKDIR##*/}"
+            export PROMPT_PWD="${PROMPT_PWD/$__git_dir/%B${__git_dir}%b}"
+        else
+            unset GITSTATUS
+            unset _short_path_old PROMPT_READ_ONLY_DIR
+            [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
+            PROMPT_PWD=${${PWD/#$HOME/${PROMPT_DIR_COLOR}\~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR}}%b%f
+        fi
     fi
 }
 
@@ -183,7 +192,6 @@ function set_termtitle_pwd() {
     for part in "${parts[@]:1}"; do
         _short_path+=/"$part"
     done
-
 }
 
 function control_git_sideeffects_preexec() {
@@ -235,10 +243,13 @@ write_git_status_after_fetch() {
 write_git_status() {
     emulate -L zsh
 
+    local __git_dir="${VCS_STATUS_WORKDIR##*/}"
+    export PROMPT_PWD="${PROMPT_PWD/$__git_dir/%B${__git_dir}%b}"
+
     if [[ $_repo_up_to_date[$VCS_STATUS_WORKDIR] == true ]]; then
         local      branch='%F{2}'   # green foreground
     else
-        local      branch='%F{6}'   # cyan foreground
+        local      branch='%F{4}'   # cyan foreground
     fi
 
     local      clean='%F{4}'  # cyan foreground
