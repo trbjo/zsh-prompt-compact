@@ -101,7 +101,7 @@ function unset_short_path_old() {
             [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
             PROMPT_PWD=${${PWD/#$HOME/${PROMPT_DIR_COLOR}\~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR}}%b%f
 
-            local __git_dir="${VCS_STATUS_WORKDIR##*/}"
+            export __git_dir="${VCS_STATUS_WORKDIR##*/}"
             export PROMPT_PWD="${PROMPT_PWD/$__git_dir/%B${__git_dir}%b}"
         else
             unset GITSTATUS
@@ -195,6 +195,7 @@ function set_termtitle_pwd() {
 }
 
 function control_git_sideeffects_preexec() {
+    # _get_lines_offset
     (( ${+__PROMPT_NEWLINE} )) && typeset -g __prompt_newline
     unset exec_time
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
@@ -243,7 +244,7 @@ write_git_status_after_fetch() {
 write_git_status() {
     emulate -L zsh
 
-    local __git_dir="${VCS_STATUS_WORKDIR##*/}"
+    export __git_dir="${VCS_STATUS_WORKDIR##*/}"
     export PROMPT_PWD="${PROMPT_PWD/$__git_dir/%B${__git_dir}%b}"
 
     if [[ $_repo_up_to_date[$VCS_STATUS_WORKDIR] == true ]]; then
@@ -316,6 +317,14 @@ write_git_status() {
     export GITSTATUS="$p"
 }
 
+_get_lines_offset() {
+    typeset -i whole_lines=$(( $#BUFFER % COLUMNS ))
+    print $whole_lines
+    print whole_lines
+}
+zle -N _get_lines_offset
+
+
 is_buffer_empty() { return $#BUFFER }
 zle -N is_buffer_empty
 
@@ -333,6 +342,7 @@ update_git_status() {
 }
 
 preprompt() {
+
     [[ -w "$PWD" ]] || PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
     [[ "$PWD" != "$HOME" ]] && gitstatus_query -t -0 -c update_git_status 'MY' 2> /dev/null
     [[ $NVM_BIN ]] && prompt_nvm=" %F{3}⬢ ${${NVM_BIN##*node/v}//\/bin/}"
@@ -413,6 +423,8 @@ prompt_split_lines() {
     PROMPT_DIR_COLOR=${PROMPT_DIR_COLOR:-'%F{4}'}
     PROMPT_PATH_SEP_COLOR=${PROMPT_PATH_SEP_COLOR:-'%F{7}'}
     PROMPT_PWD=${${PWD/#$HOME/${PROMPT_DIR_COLOR}\~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR}}%b%f
+
+    [[ $__git_dir ]] && export PROMPT_PWD="${PROMPT_PWD/$__git_dir/%B${__git_dir}%b}"
 
     autoload -Uz add-zsh-hook
 
