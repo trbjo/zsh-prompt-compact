@@ -364,7 +364,7 @@ _zsh_autosuggest_helper() { gitstatus_query -t -0 -c update_git_status 'MY' }
 
 function ssh() {
     if [[ "${#@}" -eq 1 ]] && [[ ! $1 =~ [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$ ]]; then
-        /usr/bin/ssh "$1" -t "if type zsh > /dev/null 2>&1; then exec env PROMPT_SSH_NAME=$1 EXTRA_SSH_ENV=${(q)EXTRA_SSH_ENV} zsh -l; else exec \$SHELL -l; fi"
+        /usr/bin/ssh "$1" -t "if type zsh > /dev/null 2>&1; then exec env PROMPT_SSH_NAME=$1 EXTRA_SSH_ENV=${(q)EXTRA_SSH_ENV} tmux a || zsh -l; else exec tmux a || \$SHELL -l; fi"
     else
         /usr/bin/ssh "$@"
     fi
