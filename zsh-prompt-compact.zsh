@@ -52,7 +52,7 @@ function set_termtitle_preexec() {
                 _short_path_old=$_short_path
                 set_termtitle_pwd $(( $PROMPT_TRUNCATE_AT - ${#comm} - 3 ))
             fi
-            print -n -- "\e]2;$_ssh$_short_path | ${(q)comm}\a"
+            print -n -- "\e]2;$_short_path | ${(q)comm}\a"
         else
             if (( $#comm > ${PROMPT_TRUNCATE_AT} )); then
                 local _left_half _right_half
@@ -64,7 +64,7 @@ function set_termtitle_preexec() {
                 fi
                 comm[(( $_left_half + 1 )),-$_right_half]="…"
             fi
-            print -n -- '\e]2;'$_ssh${(q)comm}'\a'
+            print -n -- '\e]2;'${(q)comm}'\a'
         fi
     fi
 }
@@ -86,9 +86,9 @@ function set_termtitle_precmd() {
     fi
 
     if [[ $__res != 0 ]]; then
-        print -n -- "\e]2;$_ssh${_short_path} ${PROMPT_ERR_ICON}\a"
+        print -n -- "\e]2;${_short_path} ${PROMPT_ERR_ICON}\a"
     else
-        print -n -- "\e]2;$_ssh${_short_path}\a"
+        print -n -- "\e]2;${_short_path}\a"
     fi
 
     __oldres=$__res
@@ -448,13 +448,8 @@ prompt_split_lines() {
     gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 
     PROMPT=
-    if [[ $SSH_CONNECTION ]]; then
+    if [[ ! $SSH_CONNECTION ]]; then
         [[ -z "$PROMPT_SSH_NAME" ]] && PROMPT_SSH_NAME="${HOST}"
-        if (( $#PROMPT_SSH_NAME > 15 )); then
-            typeset -gx _ssh="[${PROMPT_SSH_NAME:0:7}…${PROMPT_SSH_NAME: -7}] "
-        else
-            typeset -gx _ssh="[${PROMPT_SSH_NAME}] "
-        fi
     fi
     PROMPT+='${SSH_CONNECTION:+%B[%b$PROMPT_SSH_NAME%B]%b }'
     PROMPT+='$PROMPT_PWD'
