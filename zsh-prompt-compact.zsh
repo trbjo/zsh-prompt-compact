@@ -399,7 +399,7 @@ prompt_split_lines() {
     (( $_git_fetch_result_valid_for < 2 )) && _git_fetch_result_valid_for=2
     _git_connect_timeout=$((_git_fetch_result_valid_for -1))
 
-    PROMPT_NO_SET_TITLE="${PROMPT_NO_SET_TITLE:-cd,clear,ls,stat,rmdir,mkdir,which,where,echo,print,true,false,_zlua,time,_file_opener}"
+    PROMPT_NO_SET_TITLE="${PROMPT_NO_SET_TITLE:-cd,clear,ls,stat,rmdir,mkdir,which,where,echo,print,true,false,_zlua,time,_file_opener,exa}"
     PROMPT_TRUNCATE_AT="${PROMPT_TRUNCATE_AT:-40}"
 
     # set fancy icons
