@@ -237,7 +237,6 @@ write_git_status_after_fetch() {
         write_git_status
     else
         unset VCS_STATUS_WORKDIR
-        return 0
     fi
 }
 
@@ -291,30 +290,9 @@ write_git_status() {
     p+="%b%f"
     [[ "$GITSTATUS" == "$p" ]] && return 0
 
-    if [[ -z $GITSTATUS ]] || zle is_buffer_empty; then
-        export GITSTATUS="$p"
-        prompt_split_lines
-        zle reset-prompt
-        return 0
-    fi
-
-    # 3 is the prompt char itself plus two spaces
-    (( right_distance= ${#${(S%%)${(e)PROMPT}//$~__zero/}} - ${#${(S%%)${(e)GITSTATUS}//$~__zero/}} - 3 ))
-    # the unicode snake has a length of two
-    [[ ${prompt_virtual_env} ]] && right_distance+=1
-
-    if [[ -z "${PROMPT_WS_SEP}" ]]; then
-        # gitstatus might bleed into prompt; in that case, we print the old with a different color
-        if (( ${#p} != ${#GITSTATUS} )); then
-            print -Pn -- '\e7\r\e[${right_distance}C%B%F{250}${GITSTATUS[8,${#GITSTATUS}]}\e8'
-        else
-            print -Pn -- '\e7\r\e[${right_distance}C${p}\e8'
-        fi
-    else
-        print -Pn -- '\e7\e[F\e[${right_distance}C\e[0K${p}\e8'
-    fi
-
     export GITSTATUS="$p"
+    prompt_split_lines
+    zle reset-prompt
 }
 
 _get_lines_offset() {
