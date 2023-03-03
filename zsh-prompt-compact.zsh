@@ -224,7 +224,7 @@ check_cmd_exec_time() {
         (( hours > 0 )) && human+="${hours}h "
         (( minutes > 0 )) && human+="${minutes}m "
         human+="${seconds}s"
-        typeset -g exec_time=" %F{5}${human}"
+        typeset -g exec_time=" %F{3}${human}"
     }
 }
 
@@ -361,6 +361,16 @@ prompt_split_lines() {
     fi
     return ${ret:-0}
 }
+
+accept-line() {
+    export exec_time=" %F{3}%D{%T}%f"
+    zle reset-prompt
+    unset exec_time
+
+    zle .accept-line
+}
+zle -N accept-line
+
 
 () {
     # disable python's built in manipulation of the prompt in favor of our own
