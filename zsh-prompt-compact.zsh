@@ -393,7 +393,7 @@ zle -N accept-line
     # set fancy icons
     if (( ! ${+NO_PROMPT_FANCY_ICONS} )) && [[ $TERM != 'linux' ]]; then
         PROMPT_READ_ONLY_ICON="${PROMPT_READ_ONLY_ICON:-}"
-        PROMPT_ERR_ICON="${PROMPT_ERR_ICON:-🞮}"
+        PROMPT_ERR_ICON="${PROMPT_ERR_ICON:-🞬}"
         PROMPT_SUCCESS_ICON="${PROMPT_SUCCESS_ICON:-❯}"
         prompt_eol='%F{1}❮❮❮%f'
     else
