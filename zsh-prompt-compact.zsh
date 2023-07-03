@@ -22,7 +22,7 @@ activate() {
     __activater_recursive "$PWD"
 
     case ${#venvs} in
-        1) [[ $VIRTUAL_ENV ]] && [[ "$VIRTUAL_ENV" == "${venvs[@]:0}" ]] && print "Already using $(_colorizer ${venvs})" && return 1
+        1) [[ $VIRTUAL_ENV ]] && [[ "$VIRTUAL_ENV" == "${venvs[@]:0}" ]] && print "Already using $(_colorizer_abs_path ${venvs})" && return 1
             print "Found venv in $(_colorizer ${venvs})"
            [[ $VIRTUAL_ENV ]] && deactivate
            type pyenv > /dev/null 2>&1 && typeset -g PROMPT_PYENV_PYTHON_VERSION="$(pyenv version-name)"
@@ -50,7 +50,7 @@ function set_termtitle_preexec() {
                     comm[(( $_left_half + 1 )),-$_right_half]="…"
                 fi
                 _short_path_old=$_short_path
-                set_termtitle_pwd $(( $PROMPT_TRUNCATE_AT - ${#comm} - 3 ))
+                export _short_path="$(truncate_dir_path $(( $PROMPT_TRUNCATE_AT - ${#comm} - 3 )))"
             fi
             print -n -- "\e]2;$_short_path | ${(q)comm}\a"
         else
@@ -79,9 +79,9 @@ function set_termtitle_precmd() {
 
     if [[ $__oldres != $__res ]]; then
         if [[ $__res != 0 ]]; then
-            set_termtitle_pwd $(( $PROMPT_TRUNCATE_AT - ${#PROMPT_ERR_ICON} - 1 ))
+            export _short_path="$(truncate_dir_path $(($PROMPT_TRUNCATE_AT - ${#PROMPT_ERR_ICON} - 1)))"
         else
-            set_termtitle_pwd
+            export _short_path="$(truncate_dir_path)"
         fi
     fi
 
@@ -94,108 +94,131 @@ function set_termtitle_precmd() {
     __oldres=$__res
 }
 
-function unset_short_path_old() {
-    if [[ "$PWD" != "$OLDPWD" ]]; then
-        if [[ $PWD == ${VCS_STATUS_WORKDIR}* ]]; then
-            unset _short_path_old PROMPT_READ_ONLY_DIR
-            [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
-            PROMPT_PWD=${${PWD/#$HOME/${PROMPT_DIR_COLOR}\~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR}}%b%f
+typeset -g __zero='%([BSUbfksu]|([FK]|){*})'
+function truncate_prompt() {
+    unset PROMPT_WS_SEP
+    local __prompt_non_truncated=
+    __prompt_non_truncated+='${SSH_CONNECTION:+%B[%b$PROMPT_SSH_NAME%B]%b }'
+    __prompt_non_truncated+='$PROMPT_READ_ONLY_DIR'
+    __prompt_non_truncated+='$exec_time'
 
-            export __git_dir="${VCS_STATUS_WORKDIR##*/}"
-            export PROMPT_PWD="${PROMPT_PWD/$__git_dir/%B${__git_dir}%b}"
-        else
-            unset GITSTATUS
-            unset _short_path_old PROMPT_READ_ONLY_DIR
-            [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
-            PROMPT_PWD=${${PWD/#$HOME/${PROMPT_DIR_COLOR}\~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR}}%b%f
-        fi
+    if [[ -n $prompt_virtual_env ]]; then
+        __prompt_non_truncated+='$prompt_virtual_env'
+        __prompt_non_truncated+=' '
+    fi
+
+    __prompt_non_truncated+='$prompt_nvm'
+    __prompt_non_truncated+='${GITSTATUS}'
+    typeset -i __prompt_non_truncated_len=${#${(S%%)${(e)__prompt_non_truncated}//$~__zero/}}
+    typeset -i surplus=$(( COLUMNS - $__prompt_non_truncated_len ))
+
+    if [[ ! -z $__git_dir ]]; then
+        typeset -a full_path=(${(@s[/])PWD})
+        typeset -a git_dir=(${(@s[/])__git_dir})
+        full_path[${#git_dir}]="%B${full_path[${#git_dir}]}%b"
+        local modified_pwd="/${full_path[*]// //}"
+        local truncated_dirs="$(truncate_dir_path $surplus $modified_pwd)"
+    else
+        local truncated_dirs="$(truncate_dir_path $surplus)"
+    fi
+    export PROMPT_PWD=${${truncated_dirs/\~/${PROMPT_DIR_COLOR:-}~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR:-}}%b%f
+
+    if (( ${#${(S%%)${(e)PROMPT}//$~__zero/}} > COLUMNS / 3 )); then
+        :
+        # export PROMPT_WS_SEP=$'\n'
     fi
 }
 
-function set_termtitle_pwd() {
-    typeset -gx _short_path
+function unset_short_path_old() {
+    typeset -gx _short_path=$(truncate_dir_path)
+    if [[ "$PWD" != "$OLDPWD" ]]; then
+        unset _short_path_old PROMPT_READ_ONLY_DIR
+        [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
+        [[ $PWD == ${VCS_STATUS_WORKDIR}* ]] && export __git_dir="${VCS_STATUS_WORKDIR}" || { unset GITSTATUS; unset __git_dir }
+    fi
+}
+
+function truncate_dir_path() {
+    typeset __truncate_at=${1:-$PROMPT_TRUNCATE_AT}
+    typeset truncate_path="${2:-$PWD}"
     typeset -a parts
+    local pd
 
-    if [[ "$PWD" == $HOME* ]]; then
-        _short_path="~"
-        pd="${PWD/#$HOME/~}"
+    if [[ "${truncate_path}/" == ${HOME}/* ]]; then
+        __short_path="~"
+        pd="${truncate_path/#$HOME/~}"
     else
-        _short_path=""
-        pd="$PWD"
+        __short_path=""
+        pd="$truncate_path"
     fi
 
-    parts=("${(@s[/])pd}")
-    num_of_elems=${#parts}
+    typeset -a parts=(${(@s[/])pd})
+    local clean_pd="${${(S%%)${(e)pd}//$~__zero/}}"
+    typeset -a clean_parts=(${(@s[/])clean_pd})
 
-    integer max_trunc
-    if [[ ${#parts} -le 2 ]]; then
-        (( max_trunc = 2 * num_of_elems + ${#parts[-1]} + 1  ))
-    else
-        (( max_trunc = 2 * num_of_elems + ${#parts[2]} + ${#parts[-1]} + 1  ))
-    fi
+    local num_of_elems=${#parts}
+    typeset -i slashes=$(($num_of_elems - 1 ))
 
-    # If the maximum prompt truncation is still to long, we just truncate the middle of the string
-    # not regarding the individual dirs
-    if (( max_trunc > ${1:-$PROMPT_TRUNCATE_AT} )); then
+    local length=${clean_pd//\//}
+    typeset -i _num_of_chars_too_long=$(( ${#clean_pd} - $__truncate_at ))
 
-        if (( ${1:-$PROMPT_TRUNCATE_AT} % 2 != 0 )); then
-            (( _left_half = ( ${1:-$PROMPT_TRUNCATE_AT} + 1 ) / 2 - 2 ))
-            (( _right_half = ( ${1:-$PROMPT_TRUNCATE_AT} - 1 ) / 2 - 2 ))
+    (( _num_of_chars_too_long < 0 )) && print -n $pd && return
+
+    _index_of_elem_to_truncate=$(( num_of_elems - 1 ))
+    while (( $_num_of_chars_too_long > 0 )) && (( _index_of_elem_to_truncate > 0 )); do
+
+        (( _cur_part_len = ${#clean_parts[$_index_of_elem_to_truncate]} ))
+
+        local clean_elem=${clean_parts[$_index_of_elem_to_truncate]}
+        if (( $_num_of_chars_too_long >= $_cur_part_len )); then
+            parts[$_index_of_elem_to_truncate]="${parts[$_index_of_elem_to_truncate]/$clean_elem/…}"
+            clean_parts[$_index_of_elem_to_truncate]="…"
         else
-            (( _right_half = ${1:-$PROMPT_TRUNCATE_AT} / 2 - 2 ))
-            (( _left_half = ${1:-$PROMPT_TRUNCATE_AT} / 2 - 2 ))
-        fi
 
-        pd[$_left_half,-$_right_half]="……"
-        _short_path=$pd
-        return
-    else
-        # total length is the length of the strings themselves, the number of slashes,
-        # the length of _short_path + 1 because we always need to add at least one slash
-        length=${pd//\//}
-        (( _num_of_chars_too_long = ${#length} + $num_of_elems + ${#_short_path} + 1 - ${1:-$PROMPT_TRUNCATE_AT} ))
-        _index_of_elem_to_truncate=$(( num_of_elems - 1 ))
-        while (( $_num_of_chars_too_long > 0 )) && (( $_index_of_elem_to_truncate > 2 )); do
-
-            (( _cur_part_len = ${#parts[$_index_of_elem_to_truncate]} ))
-
-            if (( $_num_of_chars_too_long > $_cur_part_len )); then
-                parts[$_index_of_elem_to_truncate]="…"
+            if (( _cur_part_len % 2 != 0 )); then
+                (( _divide_at = ( _cur_part_len + 1 ) / 2 ))
             else
-
-                if (( _cur_part_len % 2 != 0 )); then
-                    (( _divide_at = ( _cur_part_len + 1 ) / 2 ))
-                else
-                    (( _divide_at = _cur_part_len / 2 ))
-                fi
-
-                if (( _num_of_chars_too_long % 2 != 0 )); then
-                    (( _eat_this_many_left = ( _num_of_chars_too_long - 1 ) / 2 ))
-                    (( _eat_this_many_right = ( _num_of_chars_too_long + 1 ) / 2 ))
-                else
-                    (( _eat_this_many_left = _num_of_chars_too_long / 2 ))
-                    (( _eat_this_many_right = _num_of_chars_too_long / 2 ))
-                fi
-
-                (( _we_need_this_left = $_divide_at - _eat_this_many_left - 1 ))
-                (( _we_need_this_right = $_divide_at + _eat_this_many_right ))
-
-                parts[$_index_of_elem_to_truncate]="${parts[$_index_of_elem_to_truncate]:0:$_we_need_this_left}…${parts[$_index_of_elem_to_truncate]:$_we_need_this_right}"
+                (( _divide_at = _cur_part_len / 2 ))
             fi
 
-            printf -v length '%s' "${parts[@]}"
-            _index_of_elem_to_truncate=$(( $_index_of_elem_to_truncate - 1 ))
-            (( _num_of_chars_too_long = ${#length} + $num_of_elems + ${#_short_path} + 1 - ${1:-$PROMPT_TRUNCATE_AT} ))
-        done
-    fi
+            if (( _num_of_chars_too_long % 2 != 0 )); then
+                (( _eat_this_many_left = ( _num_of_chars_too_long - 1 ) / 2 ))
+                (( _eat_this_many_right = ( _num_of_chars_too_long + 1 ) / 2 ))
+            else
+                (( _eat_this_many_left = _num_of_chars_too_long / 2 ))
+                (( _eat_this_many_right = _num_of_chars_too_long / 2 ))
+            fi
+
+            (( _we_need_this_left = $_divide_at - _eat_this_many_left - 1 ))
+            (( _we_need_this_right = $_divide_at + _eat_this_many_right ))
+            local truncated_clean="${clean_parts[$_index_of_elem_to_truncate]:0:$_we_need_this_left}…${clean_parts[$_index_of_elem_to_truncate]:$_we_need_this_right}"
+
+            parts[$_index_of_elem_to_truncate]="${parts[$_index_of_elem_to_truncate]/$clean_elem/$truncated_clean}"
+            clean_parts[$_index_of_elem_to_truncate]="$truncated_clean"
+        fi
+
+        (( _index_of_elem_to_truncate == num_of_elems )) && break # pwd is last folder to get truncated
+
+        printf -v length '%s' "${clean_parts[@]}"
+        _index_of_elem_to_truncate=$(( $_index_of_elem_to_truncate - 1 ))
+        (( _num_of_chars_too_long = ${#length} + $slashes - $__truncate_at))
+
+        if (( _index_of_elem_to_truncate == 1 )); then
+            _index_of_elem_to_truncate=$num_of_elems
+            continue
+        fi
+
+    done
+
     local part
     for part in "${parts[@]:1}"; do
-        _short_path+=/"$part"
+        __short_path+=/"$part"
     done
+
+    print -n $__short_path
 }
 
 function control_git_sideeffects_preexec() {
-    # _get_lines_offset
     (( ${+__PROMPT_NEWLINE} )) && typeset -g __prompt_newline
     unset exec_time
     typeset -g cmd_exec_timestamp=$EPOCHSECONDS
@@ -243,8 +266,7 @@ write_git_status_after_fetch() {
 write_git_status() {
     emulate -L zsh
 
-    export __git_dir="${VCS_STATUS_WORKDIR##*/}"
-    export PROMPT_PWD="${PROMPT_PWD/$__git_dir/%B${__git_dir}%b}"
+    export __git_dir="${VCS_STATUS_WORKDIR}"
 
     if [[ $_repo_up_to_date[$VCS_STATUS_WORKDIR] == true ]]; then
         local      branch='%F{2}'   # green foreground
@@ -291,17 +313,9 @@ write_git_status() {
     [[ "$GITSTATUS" == "$p" ]] && return 0
 
     export GITSTATUS="$p"
-    prompt_split_lines
+    truncate_prompt
     zle reset-prompt
 }
-
-_get_lines_offset() {
-    typeset -i whole_lines=$(( $#BUFFER % COLUMNS ))
-    print $whole_lines
-    print whole_lines
-}
-zle -N _get_lines_offset
-
 
 is_buffer_empty() { return $#BUFFER }
 zle -N is_buffer_empty
@@ -334,7 +348,7 @@ preprompt() {
         [[ $NVM_BIN ]] && prompt_nvm=" %F{3}⬢ ${${NVM_BIN##*node/v}//\/bin/}"
         [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${PROMPT_PYENV_PYTHON_VERSION:+%B$PROMPT_PYENV_PYTHON_VERSION%b }${VIRTUAL_ENV##/*/}"
         (( ${+__prompt_newline} )) && print && unset __prompt_newline
-        prompt_split_lines
+        truncate_prompt
     }
 }
 
@@ -348,25 +362,10 @@ function ssh() {
     fi
 }
 
-# On limited space we use a two line prompt, else one line
-# returns 0 if prompt should change, 2 if value of PROMPT_WS_SEP is unchanged
-typeset -g __zero='%([BSUbfksu]|([FK]|){*})'
-prompt_split_lines() {
-    if (( ${#${(S%%)${(e)PROMPT}//$~__zero/}} > COLUMNS / 3 )); then
-        [[ -n $PROMPT_WS_SEP ]] && local ret=2
-        PROMPT_WS_SEP=$'\n'
-    else
-        [[ -z $PROMPT_WS_SEP ]] && local ret=2
-        unset PROMPT_WS_SEP
-    fi
-    return ${ret:-0}
-}
-
 accept-line() {
-    export exec_time=" %F{3}%D{%T}%f"
+    [[ -n $exec_time ]] && exec_time+="%f|%F{3}%D{%T}%f" || export exec_time=" %F{3}%D{%T}%f"
+    truncate_prompt
     zle reset-prompt
-    unset exec_time
-
     zle .accept-line
 }
 zle -N accept-line
@@ -407,20 +406,15 @@ zle -N accept-line
     # this has an optional dependency, namely the _raw_to_zsh_color function from
     # trobjo/zsh-common-functions that will color the path in the same colors as
     # the directory color set in LS_COLORS.
-    (( ${+functions[_raw_to_zsh_color]} )) && PROMPT_DIR_COLOR=$(_raw_to_zsh_color $_di_color_raw) ||\
+    (( ${+functions[_raw_to_zsh_color]} )) && PROMPT_DIR_COLOR=$(_raw_to_zsh_color ${_di_color_raw:-34}) ||\
     PROMPT_DIR_COLOR=${PROMPT_DIR_COLOR:-'%F{4}'}
     PROMPT_PATH_SEP_COLOR=${PROMPT_PATH_SEP_COLOR:-'%F{7}'}
-    PROMPT_PWD=${${PWD/#$HOME/${PROMPT_DIR_COLOR}\~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR}}%b%f
-
-    [[ $__git_dir ]] && export PROMPT_PWD="${PROMPT_PWD/$__git_dir/%B${__git_dir}%b}"
 
     autoload -Uz add-zsh-hook
 
     if [[ -z $PROHIBIT_TERM_TITLE ]]; then
         add-zsh-hook preexec set_termtitle_preexec
         add-zsh-hook precmd set_termtitle_precmd
-        add-zsh-hook chpwd set_termtitle_pwd
-        set_termtitle_pwd
     fi
 
     add-zsh-hook chpwd unset_short_path_old
@@ -446,7 +440,7 @@ zle -N accept-line
     PROMPT+='$prompt_virtual_env'
     PROMPT+='$prompt_nvm'
     PROMPT+='${GITSTATUS}'
-    PROMPT+='${PROMPT_WS_SEP:- }'
+    PROMPT+='${PROMPT_WS_SEP- }'
     PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
-    prompt_split_lines
+    truncate_prompt
 }
