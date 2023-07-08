@@ -124,8 +124,7 @@ function truncate_prompt() {
     export PROMPT_PWD=${${truncated_dirs/\~/${PROMPT_DIR_COLOR:-}~}//\//%{$reset_color%}${PROMPT_PATH_SEP_COLOR}\/${PROMPT_DIR_COLOR:-}}%b%f
 
     if (( ${#${(S%%)${(e)PROMPT}//$~__zero/}} > COLUMNS / 3 )); then
-        :
-        # export PROMPT_WS_SEP=$'\n'
+        export PROMPT_WS_SEP=$'\n'
     fi
 }
 
