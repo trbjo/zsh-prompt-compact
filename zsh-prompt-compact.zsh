@@ -342,7 +342,7 @@ preprompt() {
 
     preprompt() {
         check_cmd_exec_time
-        unset cmd_exec_timestamp prompt_nvm prompt_virtual_env
+        unset cmd_exec_timestamp prompt_nvm prompt_virtual_env current_time
         gitstatus_query -t -0 -c update_git_status 'MY'
         [[ $NVM_BIN ]] && prompt_nvm=" %F{3}⬢ ${${NVM_BIN##*node/v}//\/bin/}"
         [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${PROMPT_PYENV_PYTHON_VERSION:+%B$PROMPT_PYENV_PYTHON_VERSION%b }${VIRTUAL_ENV##/*/}"
@@ -362,7 +362,11 @@ function ssh() {
 }
 
 accept-line() {
-    [[ -n $exec_time ]] && exec_time+="%f|%F{3}%D{%T}%f" || export exec_time=" %F{3}%D{%T}%f"
+    if [[ -n $exec_time ]]; then
+        export current_time="%f|%F{3}%D{%T}%f"
+    else
+        export current_time=" %F{3}%D{%T}%f"
+    fi
     truncate_prompt
     zle reset-prompt
     zle .accept-line
@@ -436,6 +440,7 @@ zle -N accept-line
     PROMPT+='$PROMPT_PWD'
     PROMPT+='$PROMPT_READ_ONLY_DIR'
     PROMPT+='$exec_time'
+    PROMPT+='$current_time'
     PROMPT+='$prompt_virtual_env'
     PROMPT+='$prompt_nvm'
     PROMPT+='${GITSTATUS}'
