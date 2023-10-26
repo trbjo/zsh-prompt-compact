@@ -433,7 +433,7 @@ zle -N accept-line
     gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 
     PROMPT=
-    PROMPT+='${SSH_CONNECTION:+%B[%b${PROMPT_SSH_NAME:-HOST}%B]%b }'
+    PROMPT+='${SSH_CONNECTION:+%B[%b${PROMPT_SSH_NAME:-$HOST}%B]%b }'
     PROMPT+='$PROMPT_PWD'
     PROMPT+='$PROMPT_READ_ONLY_DIR'
     PROMPT+='$exec_time'
