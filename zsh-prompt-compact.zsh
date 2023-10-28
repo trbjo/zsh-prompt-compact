@@ -358,20 +358,10 @@ preprompt() {
 
 _zsh_autosuggest_helper() { gitstatus_query -t -0 -c update_git_status 'MY' }
 
-function ssh() {
-    if [[ "${#@}" -eq 1 ]] && [[ ! $1 =~ [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$ ]]; then
-        /usr/bin/ssh "$1" -t "if tmux list-sessions > /dev/null 2>&1; then exec env EXTRA_SSH_ENV=${(q)EXTRA_SSH_ENV} tmux a; else exec env EXTRA_SSH_ENV=${(q)EXTRA_SSH_ENV} \$SHELL -l; fi"
-    else
-        /usr/bin/ssh "$@"
-    fi
-}
-
 accept-line() {
-    if [[ -n $exec_time ]]; then
-        export current_time="%f|%F{3}%D{%T}%f"
-    else
-        export current_time=" %F{3}%D{%T}%f"
-    fi
+    local current_time
+    [[ -n $exec_time ]] && current_time="%f|" || current_time=" "
+    current_time+="%F{3}%D{%T}%f"
     truncate_prompt
     zle reset-prompt
     zle .accept-line
