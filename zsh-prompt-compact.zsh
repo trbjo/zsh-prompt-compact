@@ -130,10 +130,13 @@ function truncate_prompt() {
 
 function unset_short_path_old() {
     typeset -gx _short_path=$(truncate_dir_path)
-    if [[ "$PWD" != "$OLDPWD" ]]; then
-        unset _short_path_old PROMPT_READ_ONLY_DIR
-        [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
-        [[ $PWD == ${VCS_STATUS_WORKDIR}* ]] && export __git_dir="${VCS_STATUS_WORKDIR}" || { unset GITSTATUS; unset __git_dir }
+    unset _short_path_old
+
+    if [[ $PWD == ${VCS_STATUS_WORKDIR}* ]]; then
+        export __git_dir="${VCS_STATUS_WORKDIR}"
+    else
+        unset GITSTATUS
+        unset __git_dir
     fi
 }
 
@@ -333,14 +336,16 @@ update_git_status() {
 }
 
 preprompt() {
-
-    [[ -w "$PWD" ]] || PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
+    unset PROMPT_READ_ONLY_DIR
+    [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
     [[ "$PWD" != "$HOME" ]] && gitstatus_query -t -0 -c update_git_status 'MY' 2> /dev/null
     [[ $NVM_BIN ]] && prompt_nvm=" %F{3}⬢ ${${NVM_BIN##*node/v}//\/bin/}"
     [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${PROMPT_PYENV_PYTHON_VERSION:+%{B}$PROMPT_PYENV_PYTHON_VERSION%{b} }${VIRTUAL_ENV##/*/}"
     PROMPT_EOL_MARK="$prompt_eol"
 
     preprompt() {
+        unset PROMPT_READ_ONLY_DIR
+        [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
         check_cmd_exec_time
         unset cmd_exec_timestamp prompt_nvm prompt_virtual_env current_time
         gitstatus_query -t -0 -c update_git_status 'MY'
@@ -355,7 +360,7 @@ _zsh_autosuggest_helper() { gitstatus_query -t -0 -c update_git_status 'MY' }
 
 function ssh() {
     if [[ "${#@}" -eq 1 ]] && [[ ! $1 =~ [0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$ ]]; then
-        /usr/bin/ssh "$1" -t "if type zsh > /dev/null 2>&1; then exec env PROMPT_SSH_NAME=$1 EXTRA_SSH_ENV=${(q)EXTRA_SSH_ENV} tmux a || zsh -l; else exec tmux a || \$SHELL -l; fi"
+        /usr/bin/ssh "$1" -t "if tmux list-sessions > /dev/null 2>&1; then exec env EXTRA_SSH_ENV=${(q)EXTRA_SSH_ENV} tmux a; else exec env EXTRA_SSH_ENV=${(q)EXTRA_SSH_ENV} \$SHELL -l; fi"
     else
         /usr/bin/ssh "$@"
     fi
