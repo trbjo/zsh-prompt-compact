@@ -101,6 +101,7 @@ function truncate_prompt() {
     __prompt_non_truncated+='${SSH_CONNECTION:+%B[%b$PROMPT_SSH_NAME%B]%b }'
     __prompt_non_truncated+='$PROMPT_READ_ONLY_DIR'
     __prompt_non_truncated+='$exec_time'
+    __prompt_non_truncated+='$current_time'
 
     if [[ -n $prompt_virtual_env ]]; then
         __prompt_non_truncated+='$prompt_virtual_env'
@@ -336,24 +337,16 @@ update_git_status() {
 }
 
 preprompt() {
+    print -Pn "\e]133;A\e\\"
     unset PROMPT_READ_ONLY_DIR
     [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
-    [[ "$PWD" != "$HOME" ]] && gitstatus_query -t -0 -c update_git_status 'MY' 2> /dev/null
+    check_cmd_exec_time
+    unset cmd_exec_timestamp prompt_nvm prompt_virtual_env current_time
+    gitstatus_query -t -0 -c update_git_status 'MY'
     [[ $NVM_BIN ]] && prompt_nvm=" %F{3}⬢ ${${NVM_BIN##*node/v}//\/bin/}"
-    [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${PROMPT_PYENV_PYTHON_VERSION:+%{B}$PROMPT_PYENV_PYTHON_VERSION%{b} }${VIRTUAL_ENV##/*/}"
-    PROMPT_EOL_MARK="$prompt_eol"
-
-    preprompt() {
-        unset PROMPT_READ_ONLY_DIR
-        [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
-        check_cmd_exec_time
-        unset cmd_exec_timestamp prompt_nvm prompt_virtual_env current_time
-        gitstatus_query -t -0 -c update_git_status 'MY'
-        [[ $NVM_BIN ]] && prompt_nvm=" %F{3}⬢ ${${NVM_BIN##*node/v}//\/bin/}"
-        [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${PROMPT_PYENV_PYTHON_VERSION:+%B$PROMPT_PYENV_PYTHON_VERSION%b }${VIRTUAL_ENV##/*/}"
-        (( ${+__prompt_newline} )) && print && unset __prompt_newline
-        truncate_prompt
-    }
+    [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${PROMPT_PYENV_PYTHON_VERSION:+%B$PROMPT_PYENV_PYTHON_VERSION%b }${VIRTUAL_ENV##/*/}"
+    (( ${+__prompt_newline} )) && print && unset __prompt_newline
+    truncate_prompt
 }
 
 _zsh_autosuggest_helper() { gitstatus_query -t -0 -c update_git_status 'MY' }
