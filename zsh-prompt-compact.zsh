@@ -337,7 +337,7 @@ update_git_status() {
 }
 
 preprompt() {
-    print -Pn "\e]133;A\e\\"
+    print -Pn "\e]133;A\e\\" # foot
     unset PROMPT_READ_ONLY_DIR
     [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
     check_cmd_exec_time
