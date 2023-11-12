@@ -117,7 +117,8 @@ function truncate_prompt() {
         typeset -a full_path=(${(@s[/])PWD})
         typeset -a git_dir=(${(@s[/])__git_dir})
         full_path[${#git_dir}]="%B${full_path[${#git_dir}]}%b"
-        local modified_pwd="/${full_path[*]// //}"
+        local elem modified_pwd
+        for elem in $full_path; modified_pwd+="/$elem"
         local truncated_dirs="$(truncate_dir_path $surplus $modified_pwd)"
     else
         local truncated_dirs="$(truncate_dir_path $surplus)"
