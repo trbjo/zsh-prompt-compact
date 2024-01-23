@@ -33,40 +33,39 @@ activate() {
     return $(( ${#venvs} -1 ))
 }
 
+__prompt_padding=" | "
 function set_termtitle_preexec() {
+
     first_arg=${2%% *}
-    if command -v ${first_arg} > /dev/null 2>&1 && [[ ! ${first_arg} =~ ^(${PROMPT_NO_SET_TITLE//,/|})$ ]]; then
-        comm=${1}
-        if [[ "$PWD" != "$HOME" ]]; then
-            if (( ${#${PWD/#$HOME/~}} + ${#comm} >= $PROMPT_TRUNCATE_AT )); then
-                if (( $#comm > ${PROMPT_TRUNCATE_AT} / 2 )); then
-                    local _left_half _right_half
-                    if (( ${PROMPT_TRUNCATE_AT} % 2 != 0 )); then
-                        (( _left_half = ( ${PROMPT_TRUNCATE_AT} + 1 ) / 4  ))
-                        (( _right_half = ( ${PROMPT_TRUNCATE_AT} - 1 ) / 4 ))
-                    else
-                        (( _right_half = _left_half = ${PROMPT_TRUNCATE_AT} / 4 ))
-                    fi
-                    comm[(( $_left_half + 1 )),-$_right_half]="…"
-                fi
-                _short_path_old=$_short_path
-                export _short_path="$(truncate_dir_path $(( $PROMPT_TRUNCATE_AT - ${#comm} - 3 )))"
-            fi
-            print -n -- "\e]2;$_short_path | ${(q)comm}\a"
-        else
-            if (( $#comm > ${PROMPT_TRUNCATE_AT} )); then
-                local _left_half _right_half
-                if (( ${PROMPT_TRUNCATE_AT} % 2 != 0 )); then
-                    (( _left_half = ( ${PROMPT_TRUNCATE_AT} + 1 ) / 2  ))
-                    (( _right_half = ( ${PROMPT_TRUNCATE_AT} - 1 ) / 2 ))
-                else
-                    (( _right_half = _left_half = ${PROMPT_TRUNCATE_AT} / 2 ))
-                fi
-                comm[(( $_left_half + 1 )),-$_right_half]="…"
-            fi
-            print -n -- '\e]2;'${(q)comm}'\a'
-        fi
+    ! command -v ${first_arg} > /dev/null 2>&1 && return
+    [[ ${first_arg} =~ ^(${PROMPT_NO_SET_TITLE//,/|})$ ]] && return
+
+    comm=${1}
+    typeset -gx _short_path
+    integer surplus dir_surplus cmd_surplus
+    surplus=$(( ( ${#${PWD/#$HOME/~}} + ${#comm} ) - $PROMPT_TRUNCATE_AT ))
+
+    (( cmd_surplus = dir_surplus = surplus / 2 ))
+    # zsh rounds down by default
+    (( surplus % 2 != 0 )) && dir_surplus+=1
+    # print -n -- "$_short_path | ${(q)comm}\a"
+
+    local title_string="\e]2;"
+    if [[ "$PWD" != "$HOME" ]]; then
+        _short_path="$(truncate_dir_path $(( $PROMPT_TRUNCATE_AT - dir_surplus - ${#__prompt_padding} )))"
+        title_string+="$_short_path${__prompt_padding}"
     fi
+    _short_path_old=$_short_path
+
+    if (( cmd_surplus > 0 )); then
+        integer left_cmd_surplus right_cmd_surplus
+        (( right_cmd_surplus = left_cmd_surplus = cmd_surplus / 2 ))
+        (( cmd_surplus % 2 != 0 )) && right_cmd_surplus+=1
+        integer halfclength=$(( ${#comm} / 2 ))
+        comm[$(( halfclength - left_cmd_surplus + 1 )),$(( halfclength + right_cmd_surplus ))]="…"
+    fi
+    title_string+="${(q)comm}\a"
+    print -n -- "$title_string"
 }
 
 function set_termtitle_precmd() {
@@ -326,11 +325,13 @@ zle -N is_buffer_empty
 
 update_git_status() {
     [[ $VCS_STATUS_RESULT == 'ok-async' ]] || return 0
-    [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${_git_fetch_result_valid_for} ]] && \
-    _repo_up_to_date[$VCS_STATUS_WORKDIR]=false local out_of_date=1
     write_git_status
     (( ${+PROMPT_GIT_PROHIBIT_REMOTE} )) && return 0
-    [[ $out_of_date ]] || return 0
+    if [[ $(($EPOCHSECONDS - ${_last_checks[$VCS_STATUS_WORKDIR]:-0})) -gt ${_git_fetch_result_valid_for} ]]; then
+        _repo_up_to_date[$VCS_STATUS_WORKDIR]=false
+    else
+        return 0
+    fi
     _last_checks[$VCS_STATUS_WORKDIR]="$EPOCHSECONDS"
     { env GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-"ssh"} -o ConnectTimeout=$_git_connect_timeout -o BatchMode=yes" GIT_TERMINAL_PROMPT=0 /usr/bin/git -c gc.auto=0 -C "${VCS_STATUS_WORKDIR}" fetch --recurse-submodules=no > /dev/null 2>&1 &&\
     gitstatus_query -t -0 -c write_git_status_after_fetch "MY" } &!
@@ -338,19 +339,20 @@ update_git_status() {
 }
 
 preprompt() {
-    print -Pn "\e]133;A\e\\" # foot
-    unset PROMPT_READ_ONLY_DIR
-    [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
-    check_cmd_exec_time
-    unset cmd_exec_timestamp prompt_nvm prompt_virtual_env current_time
-    gitstatus_query -t -0 -c update_git_status 'MY'
-    [[ $NVM_BIN ]] && prompt_nvm=" %F{3}⬢ ${${NVM_BIN##*node/v}//\/bin/}"
-    [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${PROMPT_PYENV_PYTHON_VERSION:+%B$PROMPT_PYENV_PYTHON_VERSION%b }${VIRTUAL_ENV##/*/}"
-    (( ${+__prompt_newline} )) && print && unset __prompt_newline
-    truncate_prompt
+    PROMPT_EOL_MARK="$prompt_eol"
+    preprompt() {
+        print -Pn "\e]133;A\e\\" # foot
+        unset PROMPT_READ_ONLY_DIR
+        [[ -w "$PWD" ]] || export PROMPT_READ_ONLY_DIR=" %F{18}${PROMPT_READ_ONLY_ICON}%f"
+        check_cmd_exec_time
+        unset cmd_exec_timestamp prompt_nvm prompt_virtual_env current_time
+        gitstatus_query -t -0 -c update_git_status 'MY'
+        [[ $NVM_BIN ]] && prompt_nvm=" %F{3}⬢ ${${NVM_BIN##*node/v}//\/bin/}"
+        [[ $VIRTUAL_ENV ]] && prompt_virtual_env=" 🐍%F{2}${PROMPT_PYENV_PYTHON_VERSION:+%B$PROMPT_PYENV_PYTHON_VERSION%b }${VIRTUAL_ENV##/*/}"
+        (( ${+__prompt_newline} )) && print && unset __prompt_newline
+        truncate_prompt
+    }
 }
-
-_zsh_autosuggest_helper() { gitstatus_query -t -0 -c update_git_status 'MY' }
 
 accept-line() {
     local current_time
