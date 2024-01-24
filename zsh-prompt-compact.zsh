@@ -365,6 +365,18 @@ accept-line() {
 zle -N accept-line
 
 
+function osc7-pwd() {
+    emulate -L zsh # also sets localoptions for us
+    setopt extendedglob
+    local LC_ALL=C
+    printf '\e]7;file://%s%s\e\' $HOST ${PWD//(#m)([^@-Za-z&-;_~])/%${(l:2::0:)$(([##16]#MATCH))}}
+}
+
+function chpwd-osc7-pwd() {
+    (( ZSH_SUBSHELL )) || osc7-pwd
+}
+
+
 () {
     # disable python's built in manipulation of the prompt in favor of our own
     unset VIRTUAL_ENV
@@ -411,6 +423,7 @@ zle -N accept-line
         add-zsh-hook precmd set_termtitle_precmd
     fi
 
+    add-zsh-hook -Uz chpwd chpwd-osc7-pwd
     add-zsh-hook chpwd unset_short_path_old
     add-zsh-hook preexec control_git_sideeffects_preexec
     add-zsh-hook precmd preprompt
