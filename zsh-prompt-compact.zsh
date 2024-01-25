@@ -339,7 +339,7 @@ update_git_status() {
 }
 
 preprompt() {
-    PROMPT_EOL_MARK="$prompt_eol"
+    PROMPT_EOL_MARK=" $prompt_eol"
     preprompt() {
         print -Pn "\e]133;A\e\\" # foot
         unset PROMPT_READ_ONLY_DIR
@@ -436,16 +436,17 @@ function chpwd-osc7-pwd() {
     # enable staged, unstaged, conflicted and untracked counters.
     gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
 
-    PROMPT=
-    PROMPT+='${SSH_CONNECTION:+%B[%b${PROMPT_SSH_NAME:-$HOST}%B]%b }'
-    PROMPT+='$PROMPT_PWD'
-    PROMPT+='$PROMPT_READ_ONLY_DIR'
-    PROMPT+='$exec_time'
-    PROMPT+='$current_time'
-    PROMPT+='$prompt_virtual_env'
-    PROMPT+='$prompt_nvm'
-    PROMPT+='${GITSTATUS}'
-    PROMPT+='${PROMPT_WS_SEP- }'
+    typeset -gx _PROMPT=
+    _PROMPT+='${SSH_CONNECTION:+%B[%b${PROMPT_SSH_NAME:-$HOST}%B]%b }'
+    _PROMPT+='$PROMPT_PWD'
+    _PROMPT+='$PROMPT_READ_ONLY_DIR'
+    _PROMPT+='$exec_time'
+    _PROMPT+='$current_time'
+    _PROMPT+='$prompt_virtual_env'
+    _PROMPT+='$prompt_nvm'
+    _PROMPT+='${GITSTATUS}'
+    _PROMPT+='${PROMPT_WS_SEP- }'
+    PROMPT=$_PROMPT
     PROMPT+='%(?.%F{magenta}${PROMPT_SUCCESS_ICON}%f.%F{red}${PROMPT_ERR_ICON}%f) '
     truncate_prompt
 }
