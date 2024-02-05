@@ -52,7 +52,7 @@ function truncate_prompt() {
     # __prompt_non_truncated+='${GITSTATUS}'
     # typeset -i surplus=$(( COLUMNS - ${#${(S%%)${(e)__prompt_non_truncated}//$~__zero/}} ))
 
-    if (( ${#${(S%%)${(e)PROMPT}//$~__zero/}} > COLUMNS / 3 )); then
+    if (( ( ${#${(S%%)${(e)PROMPT}//$~__zero/}} + ${#${PWD/#$HOME/1}} ) > COLUMNS / 3 )); then
         export PROMPT_WS_SEP=$'\n'
     fi
 }
@@ -312,10 +312,8 @@ function osc7-pwd() {
 
     autoload -Uz add-zsh-hook
 
-    if [[ -z $PROHIBIT_TERM_TITLE ]]; then
-        add-zsh-hook preexec set_termtitle_preexec
-        add-zsh-hook precmd set_termtitle_precmd
-    fi
+    add-zsh-hook preexec set_termtitle_preexec
+    add-zsh-hook precmd set_termtitle_precmd
 
     add-zsh-hook chpwd chpwd_hook
     add-zsh-hook preexec preexec_hook
@@ -331,7 +329,7 @@ function osc7-pwd() {
 
     typeset -gx _PROMPT=
     _PROMPT+='${SSH_CONNECTION:+%B[%b${PROMPT_SSH_NAME:-$HOST}%B]%b }'
-    _PROMPT+='$(colorpath)'
+    _PROMPT+='%{$(colorpath)%}%{%${#${PWD/#$HOME/1}}G%}' # ensures we get to set manually how many columns the cursor moves
     _PROMPT+='$PROMPT_READ_ONLY_DIR'
     _PROMPT+='$exec_time'
     _PROMPT+='${GITSTATUS}'
